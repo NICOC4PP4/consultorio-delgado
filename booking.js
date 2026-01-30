@@ -73,9 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EMAIL JS INTEGRATION ---
     // REEMPLAZAR CON TUS CLAVES:
-    const EMAILJS_PUBLIC_KEY = "TU_PUBLIC_KEY"; // Ej: "user_123456"
-    const EMAILJS_SERVICE_ID = "TU_SERVICE_ID"; // Ej: "service_gmail"
-    const EMAILJS_TEMPLATE_ID = "TU_TEMPLATE_ID"; // Ej: "template_confirmation"
+    const EMAILJS_PUBLIC_KEY = "yp2cTT12Ti6VmL4iN";
+    const EMAILJS_SERVICE_ID = "service_0wgkq1l";
+    const EMAILJS_TEMPLATE_ID = "template_zkapdb6";
 
     // Inicializar EmailJS si está cargado
     if (typeof emailjs !== 'undefined') {
