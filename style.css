@@ -518,25 +518,7 @@ header.scrolled {
     padding: 0.75rem 1.75rem;
     border-radius: 100px;
     font-size: 0.95rem;
-    transition: var(--transition);
     cursor: default;
-}
-
-.insurance-item:hover {
-    background: white;
-    color: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
-}
-
-.insurance-item.highlight {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.insurance-item.highlight:hover {
-    background: var(--accent);
-    color: white;
 }
 
 /* Contact */
