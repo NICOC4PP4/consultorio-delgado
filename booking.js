@@ -61,12 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function selectSlot(btn, time) {
         // Remove active class from all
         document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
-        
+
         // Add to clicked
         btn.classList.add('active');
-        
+
         // Update form data
-        selectedSlotInput.value = time;
+        selectedSlotInput.value = `${dateInput.value} ${time}`;
         slotDisplay.textContent = `Turno seleccionado: ${dateInput.value} a las ${time}hs`;
         submitBtn.disabled = false;
     }
