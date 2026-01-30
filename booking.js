@@ -109,11 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const doctorName = document.querySelector('h1').textContent.includes('Ginecología') ? 'Dra. Secondi' : 'Dr. Capparelli';
 
                     const templateParams = {
-                        to_email: form.email.value,
+                        email: form.email.value, // Changed from to_email to match template {{email}}
                         to_name: form.nombre.value + ' ' + form.apellido.value,
                         doctor_name: doctorName,
-                        date_time: selectedSlotInput.value,
-                        reply_to: 'consultoriodelgado@gmail.com' // Ajustar si es necesario
+                        date_time: selectedSlotInput.value
                     };
 
                     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
