@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Schedule Elements
     const scheduleContainer = document.getElementById('schedule-container');
     const saveScheduleBtn = document.getElementById('save-schedule-btn');
+    const maxBookingDaysInput = document.getElementById('max-booking-days');
 
     // Modals
     const editModal = document.getElementById('edit-modal');
