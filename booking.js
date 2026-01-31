@@ -80,11 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const options = { day: 'numeric', month: 'numeric' };
         currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${fridayDate.toLocaleDateString('es-AR', options)}`;
 
-        // Calculate Max Date (15 days from today)
+        // Calculate Max Date (11 days from today)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const maxDate = new Date(today);
-        maxDate.setDate(today.getDate() + 15);
+        maxDate.setDate(today.getDate() + 11);
         const maxDateStr = maxDate.toISOString().split('T')[0];
 
         // Hide/Disable Buttons based on limits
