@@ -17,10 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // View Tabs & Containers
     const viewDaily = document.getElementById('view-daily');
     const viewWeekly = document.getElementById('view-weekly');
-    const viewSchedule = document.getElementById('view-schedule');
+    const viewRecurrence = document.getElementById('view-recurrence');
+    const viewConfig = document.getElementById('view-config');
+
     const tabDaily = document.getElementById('tab-daily');
     const tabWeekly = document.getElementById('tab-weekly');
-    const tabSchedule = document.getElementById('tab-schedule');
+    const tabRecurrence = document.getElementById('tab-recurrence');
+    const tabConfig = document.getElementById('tab-config');
 
     // Daily View Elements
     const dailyDatePicker = document.getElementById('daily-date-picker');
@@ -28,10 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const dailyList = document.getElementById('daily-agenda-list');
     const dailyPrev = document.getElementById('daily-prev');
     const dailyNext = document.getElementById('daily-next');
+    const dailyToday = document.getElementById('daily-today');
 
     // Schedule Elements
     const scheduleContainer = document.getElementById('schedule-container');
-    const saveScheduleBtn = document.getElementById('save-schedule-btn');
+    const saveRecurrenceBtn = document.getElementById('save-recurrence-btn');
+    const saveConfigBtn = document.getElementById('save-config-btn');
     const maxBookingDaysInput = document.getElementById('max-booking-days');
 
     // Modals
@@ -299,25 +304,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DAILY VIEW LOGIC ---
 
+    if (dailyToday) dailyToday.addEventListener('click', () => {
+        currentDailyDate = new Date();
+        updateDailyView();
+    });
+
     dailyPrev.addEventListener('click', () => changeDailyDate(-1));
     dailyNext.addEventListener('click', () => changeDailyDate(1));
     dailyDatePicker.addEventListener('change', (e) => {
-        currentDailyDate = new Date(e.target.value + 'T00:00:00');
+        // Fix timezone offset issue by treating input as local midnight
+        const [y, m, d] = e.target.value.split('-').map(Number);
+        currentDailyDate = new Date(y, m - 1, d);
         updateDailyView();
     });
 
     function getNextBusinessDay(date) {
+        // Keep this for initial load if preferred, or just return date
         let d = new Date(date);
-        if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
-        else if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
         return d;
     }
 
     function changeDailyDate(offset) {
         currentDailyDate.setDate(currentDailyDate.getDate() + offset);
-        while (currentDailyDate.getDay() === 0 || currentDailyDate.getDay() === 6) {
-            currentDailyDate.setDate(currentDailyDate.getDate() + (offset > 0 ? 1 : -1));
-        }
+        // Weekend skip removed to allow full navigation
         updateDailyView();
     }
 
