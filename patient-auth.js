@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getErrorMessage(code) {
         switch (code) {
-            case 'auth/email-already-in-use': return "El email ya está registrado.";
+            case 'auth/email-already-in-use': return "Este email ya tiene cuenta. Por favor inicia sesión.";
             case 'auth/invalid-email': return "El email no es válido.";
             case 'auth/weak-password': return "La contraseña es muy débil.";
             case 'auth/wrong-password': return "Contraseña incorrecta.";
