@@ -18,13 +18,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const doctorId = formName.includes('secondi') ? 'secondi' : 'capparelli';
 
     // Configuration
-    const startHour = 8;
-    const endHour = 17;
+    const startHour = 14;
+    const endHour = 18;
     const intervalMinutes = 20;
 
     // State
-    let currentMonday = getStartOfWeek(new Date());
-    const minDate = getStartOfWeek(new Date()); // Lock to current week
+    // Calculate start date (Next week if weekend, or current week if Mon-Fri)
+    let initialDate = new Date();
+    if (initialDate.getDay() === 0 || initialDate.getDay() === 6) {
+        // If weekend, move to next Monday
+        const daysToAdd = initialDate.getDay() === 6 ? 2 : 1;
+        initialDate.setDate(initialDate.getDate() + daysToAdd);
+    }
+
+    let currentMonday = getStartOfWeek(initialDate);
+    // Min date is slightly complex: if we moved to next week automatically, we might want to prevent going back to "this" empty week.
+    // But simplest is: lock to the week we decided is the "start".
+    const minDate = new Date(currentMonday);
 
     // Init
     initCalendar();
