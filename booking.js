@@ -62,6 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prevent going back past minDate
         if (offset < 0 && newDate < minDate) return;
 
+        // Prevent going forward too much (loose 21 day cap just in case)
+        const today = new Date();
+        const maxForwardDate = new Date(today);
+        maxForwardDate.setDate(today.getDate() + 21);
+        if (offset > 0 && newDate > maxForwardDate) return;
+
         currentMonday = newDate;
         renderWeek(currentMonday);
     }
@@ -74,11 +80,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const options = { day: 'numeric', month: 'numeric' };
         currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${fridayDate.toLocaleDateString('es-AR', options)}`;
 
-        // Hide/Disable Prev button if current week
-        if (mondayDate <= minDate) {
-            prevWeekBtn.style.visibility = 'hidden';
+        // Calculate Max Date (15 days from today)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 15);
+        const maxDateStr = maxDate.toISOString().split('T')[0];
+
+        // Hide/Disable Buttons based on limits
+        prevWeekBtn.style.visibility = mondayDate <= minDate ? 'hidden' : 'visible';
+
+        // Disable next if next Monday is beyond maxDate (or reasonably close)
+        // If the start of next week is > maxDate, block logic
+        const nextMonday = new Date(mondayDate);
+        nextMonday.setDate(nextMonday.getDate() + 7);
+        if (nextMonday > maxDate) {
+            nextWeekBtn.style.visibility = 'hidden';
         } else {
-            prevWeekBtn.style.visibility = 'visible';
+            nextWeekBtn.style.visibility = 'visible';
         }
 
         // Clear Grid
@@ -139,6 +158,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Slots Container
                 const slotsContainer = document.createElement('div');
                 slotsContainer.className = 'slots-column';
+
+                // CHECK RESTRICTION
+                // If this specific date is beyond maxDate, show "No disponible yet" or simply empty
+                // User requirement: "solo se pueda sacar turno si es un paciente en los proximos 15 dias"
+                if (dateStr > maxDateStr) {
+                    slotsContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#ccc; font-size:0.8rem; font-style:italic;">Aún no habilitado</div>';
+                    col.appendChild(slotsContainer);
+                    calendarGrid.appendChild(col);
+                    return; // Skip generation
+                }
 
                 const rule = scheduleRules[dayOfWeek];
 
