@@ -64,31 +64,71 @@
 
     <!-- Dashboard Section -->
     <div id="dashboard-section" class="dashboard admin-container">
-        <div class="toolbar">
-            <div>
-                <h2 id="doctor-title" style="margin-bottom: 0.5rem;">Panel de Control</h2>
-                <select id="doctor-select" style="padding: 0.5rem; font-size: 1rem; border-radius: 4px;">
+
+        <!-- Header & Toolbar -->
+        <div class="toolbar" style="flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h2 id="doctor-title" style="margin-bottom: 0;">Panel Médico</h2>
+                <select id="doctor-select" style="padding: 0.5rem; border-radius: 4px;">
                     <option value="secondi">Dra. Secondi</option>
                     <option value="capparelli">Dr. Capparelli</option>
                 </select>
             </div>
 
-            <div class="calendar-controls" style="margin-bottom: 0;">
+            <!-- View Tabs -->
+            <div class="view-tabs" style="display:flex; gap:0.5rem;">
+                <button id="tab-daily" class="btn btn-sm active" style="border-radius: 20px;">Agenda Diaria</button>
+                <button id="tab-weekly" class="btn btn-outline btn-sm" style="border-radius: 20px;">Calendario
+                    Semanal</button>
+            </div>
+
+            <button id="logout-btn" class="btn btn-outline btn-sm">Salir <i class="fas fa-sign-out-alt"></i></button>
+        </div>
+
+        <!-- VIEW 1: Daily Agenda -->
+        <div id="view-daily" class="view-section">
+            <div class="calendar-controls"
+                style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; justify-content: flex-start; gap: 1rem;">
+                <button id="daily-prev" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i></button>
+                <input type="date" id="daily-date-picker"
+                    style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px;">
+                <button id="daily-next" class="btn btn-outline btn-sm"><i class="fas fa-chevron-right"></i></button>
+                <span id="daily-label" style="font-weight: 600; margin-left: auto;">Hoy</span>
+            </div>
+
+            <div class="daily-list-container"
+                style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #eee;">
+                <!-- Header Row -->
+                <div class="daily-row header"
+                    style="background: #f8f9fa; font-weight: 600; color: #666; font-size: 0.9rem; display:flex; padding:0.8rem; border-bottom:1px solid #eee;">
+                    <div style="width: 80px;">Hora</div>
+                    <div style="flex: 1;">Paciente</div>
+                    <div style="width: 150px;">Cobertura</div>
+                    <div style="width: 120px;">Estado</div>
+                    <div style="width: 50px;"></div>
+                </div>
+
+                <!-- Content -->
+                <div id="daily-agenda-list">
+                    <div style="padding: 2rem; text-align: center; color: #888;">Cargando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: Weekly Grid -->
+        <div id="view-weekly" class="view-section" style="display: none;">
+            <div class="calendar-controls">
                 <button id="prev-week" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i>
                     Anterior</button>
-                <span id="current-week-label" style="font-weight: 600; margin: 0 1rem;">Cargando...</span>
+                <span id="current-week-label" style="font-weight: 600;">Cargando...</span>
                 <button id="next-week" class="btn btn-outline btn-sm">Siguiente <i
                         class="fas fa-chevron-right"></i></button>
             </div>
 
-            <button id="logout-btn" class="btn btn-outline">Cerrar Sesión</button>
-        </div>
-
-        <!-- Weekly Grid Container -->
-        <div class="calendar-wrapper" style="background: white; padding: 1rem;">
-            <div id="calendar-grid" class="calendar-grid admins-grid">
-                <!-- Generado por JS -->
-                <div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando turnos...</div>
+            <div class="calendar-wrapper" style="background: white; padding: 1rem;">
+                <div id="calendar-grid" class="calendar-grid admins-grid">
+                    <div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando turnos...</div>
+                </div>
             </div>
         </div>
     </div>
