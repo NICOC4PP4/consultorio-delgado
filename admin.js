@@ -212,14 +212,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     </div>
                     <div style="flex: 1; text-align:right; display:flex; gap:0.5rem; justify-content:flex-end;">
-                        <button class="btn-icon edit-btn" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                        <button class="btn-icon delete-btn" title="Eliminar" style="color:#dc2626;"><i class="fas fa-trash"></i></button>
+                        ${!isBlocked ? `<button class="btn-icon edit-btn" title="Editar"><i class="fas fa-pencil-alt"></i></button>` : ''}
+                        <button class="btn-icon delete-btn" title="${isBlocked ? 'Desbloquear' : 'Eliminar'}" style="color:#dc2626;">
+                            <i class="fas ${isBlocked ? 'fa-lock-open' : 'fa-trash'}"></i>
+                        </button>
                     </div>
                 `;
 
                 // Handlers
-                row.querySelector('.edit-btn').onclick = () => openEditModal(appt);
-                row.querySelector('.delete-btn').onclick = () => requestDelete(appt.id);
+                if (!isBlocked) row.querySelector('.edit-btn').onclick = () => openEditModal(appt);
+                row.querySelector('.delete-btn').onclick = () => requestDelete(appt);
 
             } else {
                 // Empty
@@ -246,9 +248,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ACTIONS ---
 
-    // 1. DELETE
-    window.requestDelete = function (id) {
-        pendingDeleteId = id;
+    // 1. DELETE / UNBLOCK
+    window.requestDelete = async function (appt) {
+        // If blocked, delete immediately without confirmation
+        if (appt.status === 'blocked') {
+            try {
+                await deleteDoc(doc(db, "appointments", appt.id));
+                updateDailyView();
+            } catch (e) {
+                console.error("Unblock failed", e);
+                alert("Error al desbloquear");
+            }
+            return;
+        }
+
+        // If normal appointment, ask for confirmation
+        pendingDeleteId = appt.id;
         confirmModal.style.display = 'flex';
     }
 
