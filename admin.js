@@ -60,15 +60,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let doctorScheduleConfig = null; // Store loaded config
 
     // --- AUTHENTICATION ---
+    const ALLOWED_ADMIN = 'turnosconsultoriodelgado@gmail.com';
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
+            if (user.email.toLowerCase() !== ALLOWED_ADMIN.toLowerCase()) {
+                // Not the admin -> Redirect
+                alert("Acceso denegado. Área exclusiva para administradores.");
+                window.location.href = 'index.html';
+                return;
+            }
+
             currentUser = user;
             loginSection.style.display = 'none';
             dashboardSection.style.display = 'block';
 
-            if (user.email.includes('secondi')) doctorSelect.value = 'secondi';
-            if (user.email.includes('capparelli')) doctorSelect.value = 'capparelli';
-
+            // Default view or logic
             updateDailyView();
         } else {
             currentUser = null;
