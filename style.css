@@ -859,3 +859,27 @@ input[type="date"] {
     cursor: not-allowed;
     text-decoration: line-through;
 }
+
+/* Admin Grid Specifics */
+.admins-grid .time-slot {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+}
+
+.admins-grid .time-slot.taken {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #14532d;
+    text-decoration: none;
+    /* Override line-through */
+    cursor: pointer;
+}
+
+.admins-grid .time-slot.taken:hover {
+    background: #bbf7d0;
+    transform: scale(1.02);
+    z-index: 2;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

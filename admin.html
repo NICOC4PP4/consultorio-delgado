@@ -65,40 +65,43 @@
     <!-- Dashboard Section -->
     <div id="dashboard-section" class="dashboard admin-container">
         <div class="toolbar">
-            <h2 id="doctor-title">Bienvenido</h2>
+            <div>
+                <h2 id="doctor-title" style="margin-bottom: 0.5rem;">Panel de Control</h2>
+                <select id="doctor-select" style="padding: 0.5rem; font-size: 1rem; border-radius: 4px;">
+                    <option value="secondi">Dra. Secondi</option>
+                    <option value="capparelli">Dr. Capparelli</option>
+                </select>
+            </div>
+
+            <div class="calendar-controls" style="margin-bottom: 0;">
+                <button id="prev-week" class="btn btn-outline btn-sm"><i class="fas fa-chevron-left"></i>
+                    Anterior</button>
+                <span id="current-week-label" style="font-weight: 600; margin: 0 1rem;">Cargando...</span>
+                <button id="next-week" class="btn btn-outline btn-sm">Siguiente <i
+                        class="fas fa-chevron-right"></i></button>
+            </div>
+
             <button id="logout-btn" class="btn btn-outline">Cerrar Sesión</button>
         </div>
 
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 2rem;">
-            <!-- Sidebar / Calendar Picker -->
-            <div style="background: white; padding: 1.5rem; border-radius: 8px;">
-                <h3>Fecha</h3>
-                <input type="date" id="admin-date" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
-
-                <h3 style="margin-top: 2rem;">Acciones</h3>
-                <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Bloquear Horario</button>
+        <!-- Weekly Grid Container -->
+        <div class="calendar-wrapper" style="background: white; padding: 1rem;">
+            <div id="calendar-grid" class="calendar-grid admins-grid">
+                <!-- Generado por JS -->
+                <div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando turnos...</div>
             </div>
+        </div>
+    </div>
 
-            <!-- Appointments List -->
-            <div style="background: white; padding: 1.5rem; border-radius: 8px;">
-                <h3>Turnos del Día</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #eee; text-align: left;">
-                            <th style="padding: 0.5rem;">Hora</th>
-                            <th style="padding: 0.5rem;">Paciente</th>
-                            <th style="padding: 0.5rem;">Estado</th>
-                            <th style="padding: 0.5rem;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="appointments-table">
-                        <tr>
-                            <td colspan="4" style="padding: 2rem; text-align: center; color: #777;">Seleccione una fecha
-                                para ver turnos.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+    <!-- Appointment Details Modal -->
+    <div id="appt-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+        <div
+            style="background:white; max-width:500px; margin: 10% auto; padding:2rem; border-radius:8px; position:relative;">
+            <button onclick="document.getElementById('appt-modal').style.display='none'"
+                style="position:absolute; top:1rem; right:1rem; border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h3 id="modal-title" style="margin-bottom:1rem;">Detalles del Turno</h3>
+            <div id="modal-content"></div>
         </div>
     </div>
 
