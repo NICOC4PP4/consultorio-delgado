@@ -128,7 +128,8 @@
 
                     <div class="form-group">
                         <label>DNI</label>
-                        <input type="number" id="dni" placeholder="Sin puntos">
+                        <input type="number" id="dni" placeholder="Sin puntos" readonly
+                            style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
@@ -209,6 +210,19 @@
                     genderInput.value = data.gender || '';
                     insuranceInput.value = data.insurance || 'Particular';
                     phoneInput.value = data.phone || '';
+
+                    // Check DNI Lock
+                    if (data.dni) {
+                        dniInput.readOnly = true;
+                        dniInput.style.backgroundColor = '#f3f4f6';
+                        dniInput.style.color = '#666';
+                        dniInput.title = "Para cambiar tu DNI, contacta administración.";
+                    } else {
+                        dniInput.readOnly = false;
+                        dniInput.style.backgroundColor = '#fff';
+                        dniInput.style.color = '#000';
+                        dniInput.placeholder = "Ingresá tu DNI (Sin puntos)";
+                    }
                 } else {
                     // Start fresh or use display name if available
                     if (user.displayName) {

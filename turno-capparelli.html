@@ -93,14 +93,31 @@
                     <input type="hidden" name="form-name" value="turno-capparelli">
                     <input type="hidden" name="turno_seleccionado" id="selected-slot" required>
 
+                    <div id="profile-warning"
+                        style="display:none; background:#fff3cd; color:#856404; padding:1rem; margin-bottom:1rem; border:1px solid #ffeeba; border-radius:4px;">
+                        <i class="fas fa-exclamation-triangle"></i> Faltan datos en tu perfil. <a
+                            href="perfil-paciente.html"
+                            style="font-weight:bold; color:#856404; text-decoration:underline;">Completar Perfil</a>
+                    </div>
+
                     <div class="form-group">
                         <label>Nombre *</label>
-                        <input type="text" name="nombre" required>
+                        <input type="text" name="nombre" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
                         <label>Apellido *</label>
-                        <input type="text" name="apellido" required>
+                        <input type="text" name="apellido" required readonly style="background:#f3f4f6; color:#666;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>DNI *</label>
+                        <input type="number" name="dni" required readonly style="background:#f3f4f6; color:#666;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sexo *</label>
+                        <input type="text" name="sexo" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">

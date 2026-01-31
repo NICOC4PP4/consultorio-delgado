@@ -33,11 +33,44 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(doc(db, "patients", user.uid));
             if (docSnap.exists() && form) {
                 const data = docSnap.data();
+
+                // Autofill
                 if (form.nombre) form.nombre.value = data.firstName || '';
                 if (form.apellido) form.apellido.value = data.lastName || '';
                 if (form.email) form.email.value = data.email || user.email || '';
                 if (form.telefono) form.telefono.value = data.phone || '';
                 if (form.cobertura) form.cobertura.value = data.insurance || '';
+                if (form.dni) form.dni.value = data.dni || '';
+                if (form.sexo) form.sexo.value = data.gender || '';
+
+                // Validation
+                const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'insurance', 'dni', 'gender'];
+                const missing = requiredFields.some(field => !data[field]);
+
+                const warningBox = document.getElementById('profile-warning');
+                const submitButton = document.getElementById('submit-btn');
+
+                if (missing) {
+                    if (warningBox) warningBox.style.display = 'block';
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.title = "Complete su perfil para reservar";
+                    }
+                } else {
+                    if (warningBox) warningBox.style.display = 'none';
+                    // Enable submit only if slot is selected (logic elsewhere handles this usually, 
+                    // but we ensure it's not disabled by profile check)
+                    // We leave it disabled by default until slot selection? 
+                    // Usually submit is disabled until slot selected. 
+                    // We just ensure we don't BLOCK it if slot is selected later.
+                    // Actually, let's leave it to the slot selection logic to enable it, 
+                    // but if missing profile data, we should probably force disable.
+                    // For now, if missing, we disable. If not missing, we don't interfere (let slot logic handle).
+                }
+            } else {
+                // No profile doc? 
+                const warningBox = document.getElementById('profile-warning');
+                if (warningBox) warningBox.style.display = 'block';
             }
         } catch (e) {
             console.error("Error auto-filling form", e);

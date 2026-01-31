@@ -110,25 +110,35 @@
         </div>
     </header>
 
-    <div style="background-color: var(--light-bg); min-height: 100vh; padding-top: 5rem;">
+    <div class="page-header">
+        <div class="container">
+            <h1>Mis Turnos</h1>
+            <p>Gestiona tus próximas citas y revisa tu historial</p>
+        </div>
+    </div>
+
+    <div style="background-color: var(--light-bg); min-height: 100vh; padding-top: 2rem;">
         <div class="container">
             <div class="dashboard-container">
                 <div class="dashboard-header">
-                    <h2 id="patient-greeting">Mis Turnos</h2>
-                    <div style="font-size: 0.9rem; color: #666;" id="patient-email-display"></div>
+                    <h2 id="patient-greeting" style="display:none;">Mis Turnos</h2>
+                    <div style="font-size: 0.9rem; color: #666; width: 100%; text-align: right;"
+                        id="patient-email-display"></div>
                 </div>
+                <div style="font-size: 0.9rem; color: #666;" id="patient-email-display"></div>
+            </div>
 
-                <h3 style="margin-bottom: 1.5rem; font-size: 1.2rem;">Próximos Turnos</h3>
-                <div id="upcoming-list">
-                    <div style="text-align:center;">Cargando...</div>
-                </div>
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.2rem;">Próximos Turnos</h3>
+            <div id="upcoming-list">
+                <div style="text-align:center;">Cargando...</div>
+            </div>
 
-                <h3 style="margin-top: 3rem; margin-bottom: 1.5rem; font-size: 1.2rem; color: #666;">Historial</h3>
-                <div id="history-list">
-                    <!-- Loaded via JS -->
-                </div>
+            <h3 style="margin-top: 3rem; margin-bottom: 1.5rem; font-size: 1.2rem; color: #666;">Historial</h3>
+            <div id="history-list">
+                <!-- Loaded via JS -->
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Logic -->
