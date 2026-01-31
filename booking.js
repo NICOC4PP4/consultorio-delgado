@@ -325,16 +325,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- SUBMISSION LOGIC ---
+    // --- SUBMISSION LOGIC ---
     if (form) {
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
+            console.log("Form submitted");
+
             const btn = document.getElementById('submit-btn');
+            const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.textContent = 'Procesando...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
             const formData = new FormData(form);
             const cleanDate = form.dataset.date;
             const cleanTime = form.dataset.time;
+
+            if (!cleanDate || !cleanTime) {
+                alert("Error: No se ha seleccionado fecha u hora.");
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
 
             try {
                 // Check if slot was taken just now
@@ -342,10 +353,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isTaken) {
                     alert("Lo sentimos, este turno acaba de ser reservado por otra persona. Por favor elija otro.");
                     btn.disabled = false;
-                    btn.textContent = 'Confirmar Solicitud';
+                    btn.innerHTML = originalText;
                     renderWeek(currentMonday);
                     return;
                 }
+
+                console.log("Saving to Firestore...");
 
                 // 1. SAVE TO FIREBASE
                 await addDoc(collection(db, "appointments"), {
@@ -361,32 +374,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     patientUid: currentUser ? currentUser.uid : null
                 });
 
+                console.log("Firestore saved. Sending email...");
+
                 // 2. SEND EMAIL
                 const EMAILJS_PUBLIC_KEY = "yp2cTT12Ti6VmL4iN";
                 const EMAILJS_SERVICE_ID = "service_0wgkq1l";
                 const EMAILJS_TEMPLATE_ID = "template_zkapdb6";
 
-                if (typeof emailjs !== 'undefined') {
-                    emailjs.init(EMAILJS_PUBLIC_KEY);
-                    const doctorNamePretty = doctorId === 'secondi' ? 'Dra. Secondi' : 'Dr. Capparelli';
+                try {
+                    if (typeof emailjs !== 'undefined') {
+                        emailjs.init(EMAILJS_PUBLIC_KEY);
+                        const doctorNamePretty = doctorId === 'secondi' ? 'Dra. Secondi' : 'Dr. Capparelli';
 
-                    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-                        email: formData.get('email'),
-                        to_name: formData.get('nombre') + ' ' + formData.get('apellido'),
-                        doctor_name: doctorNamePretty,
-                        date_time: `${cleanDate} ${cleanTime}`
-                    });
+                        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                            email: formData.get('email'),
+                            to_name: formData.get('nombre') + ' ' + formData.get('apellido'),
+                            doctor_name: doctorNamePretty,
+                            date_time: `${cleanDate} ${cleanTime}`
+                        });
+                        console.log("Email sent.");
+                    } else {
+                        console.warn("EmailJS library not loaded");
+                    }
+                } catch (emailErr) {
+                    console.error("EmailJS Error (non-blocking):", emailErr);
                 }
 
                 window.location.href = 'gracias.html';
 
             } catch (error) {
                 console.error("Error booking:", error);
-                alert("Hubo un error al procesar el turno. " + error.message);
+                alert("Hubo un error al procesar el turno: " + error.message);
                 btn.disabled = false;
-                btn.textContent = 'Confirmar Solicitud';
+                btn.innerHTML = originalText;
             }
         });
+    } else {
+        console.error("Booking form not found in DOM.");
     }
 
     async function checkSlotTaken(date, time) {
