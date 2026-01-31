@@ -42,6 +42,10 @@ onAuthStateChanged(auth, async (user) => {
         } catch (e) {
             console.error("Error auto-filling form", e);
         }
+    } else {
+        // Not Logged In -> Redirect
+        // Store current URL to redirect back after login
+        window.location.href = 'login-paciente.html?redirect=turnos.html';
     }
 });
 
