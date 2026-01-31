@@ -3,7 +3,7 @@ import { db } from './firebase-config.js';
 import { collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements - Updated for Weekly View
+    // DOM Elements
     const calendarGrid = document.getElementById('calendar-grid');
     const selectedSlotInput = document.getElementById('selected-slot');
     const slotDisplay = document.getElementById('slot-display');
@@ -23,119 +23,130 @@ document.addEventListener('DOMContentLoaded', () => {
     const intervalMinutes = 20;
 
     // State
-    let currentMonday = getNextMonday(new Date());
+    let currentMonday = getStartOfWeek(new Date());
+    const minDate = getStartOfWeek(new Date()); // Lock to current week
 
     // Init
     initCalendar();
 
     function initCalendar() {
-        // Find next monday if today is weekend, or start from today if Monday, etc.
-        // Actually, "Current Week" usually means the week containing today.
-        // If today is Sat/Sun, maybe show next week? User said "Predeterminado la semana actual".
-        const today = new Date();
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        currentMonday = new Date(today.setDate(diff));
-
-        // If current Monday is in the past (e.g. today is Wed), that's fine, we disable past days.
-
         renderWeek(currentMonday);
 
         prevWeekBtn.addEventListener('click', () => changeWeek(-1));
         nextWeekBtn.addEventListener('click', () => changeWeek(1));
     }
 
-    function getNextMonday(d) {
+    function getStartOfWeek(d) {
         d = new Date(d);
         var day = d.getDay(),
             diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
-        return new Date(d.setDate(diff));
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0); // Normalize time
+        return d;
     }
 
     function changeWeek(offset) {
-        currentMonday.setDate(currentMonday.getDate() + (offset * 7));
+        const newDate = new Date(currentMonday);
+        newDate.setDate(newDate.getDate() + (offset * 7));
+
+        // Prevent going back past minDate
+        if (offset < 0 && newDate < minDate) return;
+
+        currentMonday = newDate;
         renderWeek(currentMonday);
     }
 
     async function renderWeek(mondayDate) {
-        // Update Label
+        // Update Navigation UI
         const fridayDate = new Date(mondayDate);
         fridayDate.setDate(mondayDate.getDate() + 4);
 
         const options = { day: 'numeric', month: 'numeric' };
         currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${fridayDate.toLocaleDateString('es-AR', options)}`;
 
-        // Clear Grid
-        calendarGrid.innerHTML = '<div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando disponibilidad...</div>';
-
-        // Fetch Data for the whole week
-        // Note: Ideally query range date >= monday AND date <= friday
-        // For simplicity with string dates YYYY-MM-DD, we can check specific dates or just load all for doctor (if few)
-        // Let's generate the 5 string dates
-        const weekDates = [];
-        let tempDate = new Date(mondayDate);
-        for (let i = 0; i < 5; i++) {
-            weekDates.push(tempDate.toISOString().split('T')[0]);
-            tempDate.setDate(tempDate.getDate() + 1);
+        // Hide/Disable Prev button if current week
+        if (mondayDate <= minDate) {
+            prevWeekBtn.style.visibility = 'hidden';
+        } else {
+            prevWeekBtn.style.visibility = 'visible';
         }
 
-        // Fetch taken slots
-        const takenSlotsMap = await getTakenSlotsForWeek(weekDates); // Returns object { "2026-02-01": ["10:00", "11:00"] }
+        // Show Loading
+        calendarGrid.innerHTML = '<div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando disponibilidad...</div>';
 
-        // Render Columns
-        calendarGrid.innerHTML = '';
-
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        weekDates.forEach(dateStr => {
-            const dateObj = new Date(dateStr + 'T00:00:00');
-            const dayName = dateObj.toLocaleDateString('es-AR', { weekday: 'long' });
-            const dayNum = dateObj.getDate();
-
-            const col = document.createElement('div');
-            col.className = 'day-column';
-
-            // Header
-            const header = document.createElement('div');
-            header.className = 'day-header';
-            header.innerHTML = `<span>${capitalize(dayName)}</span><small>${dayNum}</small>`;
-            col.appendChild(header);
-
-            // Slots Container
-            const slotsContainer = document.createElement('div');
-            slotsContainer.className = 'slots-column';
-
-            // Generate Slots
-            let slotTime = new Date(dateStr + 'T00:00:00');
-            slotTime.setHours(startHour, 0, 0, 0);
-            const slotEndTime = new Date(dateStr + 'T00:00:00');
-            slotEndTime.setHours(endHour, 0, 0, 0);
-
-            const isPast = dateStr < todayStr;
-
-            while (slotTime < slotEndTime) {
-                const timeStr = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-                const btn = document.createElement('div'); // Using div for styling, act as button
-                btn.className = 'time-slot';
-                btn.textContent = timeStr;
-
-                const isTaken = takenSlotsMap[dateStr] && takenSlotsMap[dateStr].includes(timeStr);
-
-                if (isPast || isTaken) {
-                    btn.classList.add('taken');
-                    // btn.title = isPast ? "Fecha pasada" : "Horario ocupado";
-                } else {
-                    btn.addEventListener('click', () => selectWeekSlot(btn, dateStr, timeStr));
-                }
-
-                slotsContainer.appendChild(btn);
-                slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
+        try {
+            // Generate dates
+            const weekDates = [];
+            let tempDate = new Date(mondayDate);
+            for (let i = 0; i < 5; i++) {
+                weekDates.push(tempDate.toISOString().split('T')[0]);
+                tempDate.setDate(tempDate.getDate() + 1);
             }
 
-            col.appendChild(slotsContainer);
-            calendarGrid.appendChild(col);
-        });
+            // Fetch taken slots
+            const takenSlotsMap = await getTakenSlotsForWeek(weekDates);
+
+            // Clear Loading
+            calendarGrid.innerHTML = '';
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            weekDates.forEach(dateStr => {
+                const dateObj = new Date(dateStr + 'T00:00:00');
+                const dayName = dateObj.toLocaleDateString('es-AR', { weekday: 'long' });
+                const dayNum = dateObj.getDate();
+
+                const col = document.createElement('div');
+                col.className = 'day-column';
+
+                // Header
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.innerHTML = `<span>${capitalize(dayName)}</span><small>${dayNum}</small>`;
+                col.appendChild(header);
+
+                // Slots Container
+                const slotsContainer = document.createElement('div');
+                slotsContainer.className = 'slots-column';
+
+                // Generate Slots
+                let slotTime = new Date(dateStr + 'T00:00:00');
+                slotTime.setHours(startHour, 0, 0, 0);
+                const slotEndTime = new Date(dateStr + 'T00:00:00');
+                slotEndTime.setHours(endHour, 0, 0, 0);
+
+                const isPast = dateStr < todayStr;
+
+                while (slotTime < slotEndTime) {
+                    const timeStr = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+                    const btn = document.createElement('div');
+                    btn.className = 'time-slot';
+                    btn.textContent = timeStr;
+
+                    const isTaken = takenSlotsMap[dateStr] && takenSlotsMap[dateStr].includes(timeStr);
+
+                    if (isPast || isTaken) {
+                        btn.classList.add('taken');
+                    } else {
+                        btn.addEventListener('click', () => selectWeekSlot(btn, dateStr, timeStr));
+                    }
+
+                    slotsContainer.appendChild(btn);
+                    slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
+                }
+
+                col.appendChild(slotsContainer);
+                calendarGrid.appendChild(col);
+            });
+
+        } catch (error) {
+            console.error("Error rendering week:", error);
+            calendarGrid.innerHTML = `<div style="padding: 2rem; text-align: center; color: red; grid-column: 1/-1;">
+                Error al cargar disponibilidad.<br>
+                <small>${error.message}</small>
+            </div>`;
+        }
     }
 
     function capitalize(s) {
@@ -143,34 +154,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getTakenSlotsForWeek(dates) {
-        // We can do a range query since 'dates' are sequential strings
+        // Range query
         const startDate = dates[0];
         const endDate = dates[dates.length - 1];
 
-        const q = query(
-            collection(db, "appointments"),
-            where("doctor", "==", doctorId),
-            where("date", ">=", startDate),
-            where("date", "<=", endDate)
-        );
+        // IMPORTANT: Firestore requires an index for compound queries.
+        // If this fails, check console for the index creation link.
+        // Fallback: Query ONLY by doctor and filter client-side if index is missing
 
-        const querySnapshot = await getDocs(q);
-        const map = {};
+        try {
+            const q = query(
+                collection(db, "appointments"),
+                where("doctor", "==", doctorId),
+                where("date", ">=", startDate),
+                where("date", "<=", endDate)
+            );
 
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // Assuming status 'confirmed' or 'blocked'
-            if (!map[data.date]) {
-                map[data.date] = [];
-            }
-            map[data.date].push(data.time);
-        });
+            const querySnapshot = await getDocs(q);
+            const map = {};
 
-        return map;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (!map[data.date]) map[data.date] = [];
+                map[data.date].push(data.time);
+            });
+
+            return map;
+        } catch (e) {
+            console.warn("Compound query failed (likely missing index). Falling back to simpler query.", e);
+            // Fallback: Fetch all future appointments for doctor (or just by doctor and filter locally)
+            // Ideally we should create the index, but for immediate fix:
+            const q = query(
+                collection(db, "appointments"),
+                where("doctor", "==", doctorId)
+            );
+            const querySnapshot = await getDocs(q);
+            const map = {};
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.date >= startDate && data.date <= endDate) {
+                    if (!map[data.date]) map[data.date] = [];
+                    map[data.date].push(data.time);
+                }
+            });
+            return map;
+        }
     }
 
     function selectWeekSlot(btn, dateStr, timeStr) {
-        // Remove active from all others
         document.querySelectorAll('.time-slot').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
 
@@ -178,12 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
         slotDisplay.textContent = `Turno seleccionado: ${dateStr} a las ${timeStr}hs`;
         submitBtn.disabled = false;
 
-        // Clean values for DB
         form.dataset.date = dateStr;
         form.dataset.time = timeStr;
     }
 
-    // --- SUBMISSION LOGIC (Same as before) ---
+    // --- SUBMISSION LOGIC ---
     if (form) {
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -196,13 +226,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const cleanTime = form.dataset.time;
 
             try {
-                // Check if slot was taken just now (Concurrency)
+                // Check if slot was taken just now
                 const isTaken = await checkSlotTaken(cleanDate, cleanTime);
                 if (isTaken) {
                     alert("Lo sentimos, este turno acaba de ser reservado por otra persona. Por favor elija otro.");
                     btn.disabled = false;
                     btn.textContent = 'Confirmar Solicitud';
-                    renderWeek(currentMonday); // Refresh
+                    renderWeek(currentMonday);
                     return;
                 }
 
@@ -247,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error("Error booking:", error);
-                alert("Hubo un error al procesar el turno.");
+                alert("Hubo un error al procesar el turno. " + error.message);
                 btn.disabled = false;
                 btn.textContent = 'Confirmar Solicitud';
             }
