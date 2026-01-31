@@ -276,6 +276,33 @@
                         firstNameInput.value = parts[0] || '';
                         lastNameInput.value = parts.slice(1).join(' ') || '';
                     }
+
+                    // No profile found: Unlock everything so they can fill it
+                    // Simulate clicking edit on all fields
+                    // Or just manually unlock
+
+                    ['firstName', 'lastName', 'gender', 'insurance', 'phone'].forEach(id => {
+                        const input = document.getElementById(id);
+                        if (input) {
+                            input.disabled = false;
+                            input.style.backgroundColor = '#fff';
+                            input.style.color = '#000';
+                            input.style.cursor = 'text';
+                            // Hide pencil if exists
+                            const btn = input.nextElementSibling;
+                            if (btn && btn.classList.contains('edit-btn')) btn.style.display = 'none';
+                        }
+                    });
+
+                    // Unlock DNI specifically
+                    dniInput.readOnly = false;
+                    dniInput.disabled = false;
+                    dniInput.style.backgroundColor = '#fff';
+                    dniInput.style.color = '#000';
+                    dniInput.placeholder = "Ingresá tu DNI (Sin puntos)";
+
+                    // Show save button
+                    saveBtn.style.display = 'block';
                 }
             } catch (e) {
                 console.error("Error loading profile", e);
