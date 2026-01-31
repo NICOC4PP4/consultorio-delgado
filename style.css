@@ -244,6 +244,20 @@ header.scrolled {
     display: none;
 }
 
+.nav-links .btn-white-box {
+    background: white;
+    color: var(--primary) !important;
+    border: 1px solid white;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.nav-links .btn-white-box:hover {
+    background: transparent;
+    color: white !important;
+    border: 1px solid white;
+}
+
 .mobile-toggle {
     display: none;
     font-size: 1.5rem;

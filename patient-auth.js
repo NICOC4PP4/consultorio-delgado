@@ -2,17 +2,14 @@ import { auth, db } from './firebase-config.js';
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithPopup,
     updateProfile
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 import {
     doc,
     setDoc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const googleProvider = new GoogleAuthProvider();
 
 // Auto-redirect if already logged in
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -129,39 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
             errDiv.style.display = 'block';
             btn.disabled = false;
             btn.innerText = "Ingresar";
-        }
-    });
-
-    // GOOGLE LOGIN
-    const googleBtn = document.getElementById('google-login-btn');
-    googleBtn.addEventListener('click', async () => {
-        try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const user = result.user;
-
-            // Check if profile exists, if not create it
-            const docRef = doc(db, "patients", user.uid);
-            const docSnap = await getDoc(docRef);
-
-            if (!docSnap.exists()) {
-                // New Google User - Save basic info
-                const names = user.displayName ? user.displayName.split(' ') : ['Usuario', 'Google'];
-                await setDoc(docRef, {
-                    firstName: names[0],
-                    lastName: names.slice(1).join(' ') || '',
-                    email: user.email,
-                    phone: '', // Unknown
-                    insurance: 'Particular', // Default
-                    createdAt: new Date(),
-                    role: 'patient'
-                });
-            }
-
-            handleSuccessRedirect();
-
-        } catch (error) {
-            console.error(error);
-            alert("Error con Google: " + error.message);
         }
     });
 
