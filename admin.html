@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Consultorio Delgado</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .login-box {
+            max-width: 400px;
+            margin: 5rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Login Section -->
+    <div id="login-section" class="login-box">
+        <h2 style="text-align: center; margin-bottom: 1.5rem;">Acceso Médicos</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="admin-email" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="admin-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Ingresar</button>
+            <p id="login-error" style="color: red; margin-top: 1rem; display: none;"></p>
+        </form>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="dashboard admin-container">
+        <div class="toolbar">
+            <h2 id="doctor-title">Bienvenido</h2>
+            <button id="logout-btn" class="btn btn-outline">Cerrar Sesión</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 2rem;">
+            <!-- Sidebar / Calendar Picker -->
+            <div style="background: white; padding: 1.5rem; border-radius: 8px;">
+                <h3>Fecha</h3>
+                <input type="date" id="admin-date" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem;">
+
+                <h3 style="margin-top: 2rem;">Acciones</h3>
+                <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Bloquear Horario</button>
+            </div>
+
+            <!-- Appointments List -->
+            <div style="background: white; padding: 1.5rem; border-radius: 8px;">
+                <h3>Turnos del Día</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #eee; text-align: left;">
+                            <th style="padding: 0.5rem;">Hora</th>
+                            <th style="padding: 0.5rem;">Paciente</th>
+                            <th style="padding: 0.5rem;">Estado</th>
+                            <th style="padding: 0.5rem;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointments-table">
+                        <tr>
+                            <td colspan="4" style="padding: 2rem; text-align: center; color: #777;">Seleccione una fecha
+                                para ver turnos.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+
+</html>
