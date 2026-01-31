@@ -251,6 +251,22 @@
                     insuranceInput.value = data.insurance || 'Particular';
                     phoneInput.value = data.phone || '';
 
+                    // Auto-unlock fields that are empty (so user can fill them easily)
+                    const fieldsToCheck = [
+                        { val: data.firstName, id: 'firstName' },
+                        { val: data.lastName, id: 'lastName' },
+                        { val: data.gender, id: 'gender' },
+                        { val: data.phone, id: 'phone' }
+                        // Insurance usually has default 'Particular'
+                    ];
+
+                    fieldsToCheck.forEach(item => {
+                        if (!item.val) {
+                            // enableEdit is globally available now
+                            if (window.enableEdit) window.enableEdit(item.id);
+                        }
+                    });
+
                     // Check DNI Lock
                     if (data.dni) {
                         // Locked
