@@ -587,9 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- WEEKLY VIEW LOGIC ---
     const weeklyTodayBtn = document.getElementById('weekly-today');
     const weeklyDatePicker = document.getElementById('weekly-date-picker');
+    const prevWeekBtn = document.getElementById('prev-week');
+    const nextWeekBtn = document.getElementById('next-week');
 
-    prevWeekBtn.addEventListener('click', () => changeWeek(-1));
-    nextWeekBtn.addEventListener('click', () => changeWeek(1));
+    if (prevWeekBtn) prevWeekBtn.addEventListener('click', () => changeWeek(-1));
+    if (nextWeekBtn) nextWeekBtn.addEventListener('click', () => changeWeek(1));
 
     if (weeklyTodayBtn) {
         weeklyTodayBtn.addEventListener('click', () => {
@@ -602,7 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
         weeklyDatePicker.addEventListener('change', (e) => {
             if (e.target.value) {
                 // When picking a date, jump to the Monday of that week
-                const selected = new Date(e.target.value + 'T00:00:00'); // Local time
+                // Need to account for timezone offset to avoid previous day
+                const parts = e.target.value.split('-');
+                const selected = new Date(parts[0], parts[1] - 1, parts[2]);
                 currentMonday = getStartOfWeek(selected);
                 renderAdminWeek(currentMonday);
             }
@@ -626,7 +630,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update DatePicker when rendering
     function updateWeeklyPicker(date) {
         if (weeklyDatePicker) {
-            weeklyDatePicker.value = date.toISOString().split('T')[0];
+            // Local date to YYYY-MM-DD
+            const offset = date.getTimezoneOffset();
+            const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+            weeklyDatePicker.value = localDate.toISOString().split('T')[0];
         }
     }
 
@@ -637,23 +644,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const doctorId = doctorSelect.value;
-        const currentWeekLabel = document.getElementById('current-week-label'); // Re-fetch to be safe
-        const calendarGrid = document.getElementById('calendar-grid');          // Re-fetch to be safe
+        const currentWeekLabel = document.getElementById('current-week-label');
+        const calendarGrid = document.getElementById('calendar-grid');
 
-        if (!currentWeekLabel || !calendarGrid) {
-            console.error("DOM elements for weekly view missing");
-            return;
-        }
+        if (!currentWeekLabel || !calendarGrid) return;
 
         updateWeeklyPicker(mondayDate);
 
 
 
         // Label
-        const saturdayDate = new Date(mondayDate);
-        saturdayDate.setDate(mondayDate.getDate() + 5);
+        const fridayDate = new Date(mondayDate);
+        fridayDate.setDate(mondayDate.getDate() + 4);
         const options = { day: 'numeric', month: 'numeric' };
-        currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${saturdayDate.toLocaleDateString('es-AR', options)}`;
+        currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${fridayDate.toLocaleDateString('es-AR', options)}`;
 
         calendarGrid.innerHTML = '<div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando turnos...</div>';
 
@@ -680,10 +684,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 2. Generate Dates (Mon-Sat)
+            // 2. Generate Dates (Mon-Fri)
             const weekDates = [];
             let tempDate = new Date(mondayDate);
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 5; i++) {
                 weekDates.push(tempDate.toISOString().split('T')[0]);
                 tempDate.setDate(tempDate.getDate() + 1);
             }
