@@ -595,37 +595,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderAdminWeek(mondayDate) {
+        if (!mondayDate || isNaN(mondayDate.getTime())) {
+            console.error("Invalid mondayDate passed to renderAdminWeek");
+            return;
+        }
+
         const doctorId = doctorSelect.value;
+        const currentWeekLabel = document.getElementById('current-week-label'); // Re-fetch to be safe
+        const calendarGrid = document.getElementById('calendar-grid');          // Re-fetch to be safe
+
+        if (!currentWeekLabel || !calendarGrid) {
+            console.error("DOM elements for weekly view missing");
+            return;
+        }
 
         // Label
-        const fridayDate = new Date(mondayDate);
-        fridayDate.setDate(mondayDate.getDate() + 4);
+        const saturdayDate = new Date(mondayDate);
+        saturdayDate.setDate(mondayDate.getDate() + 5);
         const options = { day: 'numeric', month: 'numeric' };
-        currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${fridayDate.toLocaleDateString('es-AR', options)}`;
+        currentWeekLabel.textContent = `Semana del ${mondayDate.toLocaleDateString('es-AR', options)} al ${saturdayDate.toLocaleDateString('es-AR', options)}`;
 
         calendarGrid.innerHTML = '<div style="padding: 2rem; text-align: center; grid-column: 1/-1;">Cargando turnos...</div>';
 
-        // 1. Fetch Schedule Config first
-        let scheduleRules = {
-            // Default Fallback
-            1: { active: true, start: "14:00", end: "18:00" },
-            2: { active: true, start: "14:00", end: "18:00" },
-            3: { active: true, start: "14:00", end: "18:00" },
-            4: { active: true, start: "14:00", end: "18:00" },
-            5: { active: true, start: "14:00", end: "18:00" }
-        };
-
+        // 1. Fetch Schedule Rules
+        let scheduleRules = {};
         try {
             const docSnap = await getDoc(doc(db, "doctor_schedules", doctorId));
             if (docSnap.exists() && docSnap.data().schedule) {
-                scheduleRules = { ...scheduleRules, ...docSnap.data().schedule };
+                scheduleRules = docSnap.data().schedule;
+            } else {
+                // Fallback default
+                scheduleRules = {
+                    1: { active: true, start: "14:00", end: "18:00" },
+                    2: { active: true, start: "14:00", end: "18:00" },
+                    3: { active: true, start: "14:00", end: "18:00" },
+                    4: { active: true, start: "14:00", end: "18:00" },
+                    5: { active: true, start: "14:00", end: "18:00" }
+                };
             }
         } catch (e) {
-            console.warn("Could not load dynamic schedule in weekly view, using default.", e);
+            console.error("Error loading schedule rules:", e);
+            calendarGrid.innerHTML = `<div style="color:red; padding:2rem; grid-column:1/-1">Error al cargar configuración: ${e.message}</div>`;
+            return;
         }
 
         try {
-            // Generate dates (Mon-Sat = 6 days)
+            // 2. Generate Dates (Mon-Sat)
             const weekDates = [];
             let tempDate = new Date(mondayDate);
             for (let i = 0; i < 6; i++) {
@@ -633,10 +648,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 tempDate.setDate(tempDate.getDate() + 1);
             }
 
-            // Fetch
+            // 3. Fetch Appointments
             const appointmentsMap = await getAppointmentsForWeek(doctorId, weekDates);
 
-            // Render
+            // 4. Render Grid
             calendarGrid.innerHTML = '';
 
             weekDates.forEach(dateStr => {
@@ -658,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const rule = scheduleRules[dayOfWeek];
 
-                if (!rule || !rule.active) {
+                if (!rule || !rule.active || !rule.start || !rule.end) {
                     slotsContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#ccc; font-size:0.9rem;">No atiende</div>';
                 } else {
                     const [startH, startM] = rule.start.split(':').map(Number);
@@ -669,15 +684,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const slotEndTime = new Date(dateStr + 'T00:00:00');
                     slotEndTime.setHours(endH, endM, 0, 0);
 
-                    // Safety break loop
-                    let safetyCount = 0;
-                    while (slotTime < slotEndTime && safetyCount < 50) {
-                        safetyCount++;
+                    // Safety limit
+                    let iterations = 0;
+                    while (slotTime < slotEndTime && iterations < 100) {
+                        iterations++;
                         const timeStr = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
                         const slotDiv = document.createElement('div');
                         slotDiv.className = 'time-slot';
-                        slotDiv.style.cursor = 'pointer'; // Make clickable
+                        slotDiv.style.cursor = 'pointer';
 
                         const appt = appointmentsMap[dateStr] && appointmentsMap[dateStr][timeStr];
 
@@ -689,18 +704,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 slotDiv.style.color = '#b91c1c';
                             }
 
-                            slotDiv.style.minHeight = '60px'; // Make room for content
-
+                            slotDiv.style.minHeight = '60px';
                             slotDiv.innerHTML = `
                                 <strong>${timeStr}</strong><br>
                                 ${isBlocked ? 'BLOQUEADO' : (appt.patientName ? appt.patientName.split(' ')[0] : 'Ocupado')}
                             `;
-
-                            // CLICK: Open Details/Edit
                             slotDiv.onclick = () => openEditModal(appt);
                         } else {
                             slotDiv.textContent = timeStr;
-                            // CLICK: Open Add
                             slotDiv.onclick = () => openAddModal(timeStr, dateStr);
                         }
 
@@ -714,8 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         } catch (error) {
-            console.error("Week view error", error);
-            calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error: ${error.message}</div>`;
+            console.error("Week view critical error", error);
+            calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error crítico: ${error.message}</div>`;
         }
     }
 
@@ -723,30 +734,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = dates[0];
         const endDate = dates[dates.length - 1];
 
-        // Fallback query identical to previous
+        // Use client-side filtering to avoid index issues for now
         try {
-            const q = query(
-                collection(db, "appointments"),
-                where("doctor", "==", doctorId),
-                where("date", ">=", startDate),
-                where("date", "<=", endDate)
-            );
-            const snap = await getDocs(q);
-            return processSnap(snap);
-        } catch (e) {
-            console.warn("Index missing, falling back to simpler query");
             const q = query(collection(db, "appointments"), where("doctor", "==", doctorId));
             const snap = await getDocs(q);
-            // Filter locally
+
             const map = {};
             snap.forEach(doc => {
-                const data = doc.data();
+                const data = { id: doc.id, ...doc.data() };
+                // Filter by date range locally
                 if (data.date >= startDate && data.date <= endDate) {
                     if (!map[data.date]) map[data.date] = {};
                     map[data.date][data.time] = data;
                 }
             });
             return map;
+        } catch (e) {
+            console.error("Fetch appointments failed", e);
+            throw e;
         }
     }
 
