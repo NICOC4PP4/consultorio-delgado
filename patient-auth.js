@@ -13,8 +13,12 @@ import {
 
 // Auto-redirect if already logged in
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// Auth State
+let currentUser = null;
+let isRegistering = false; // Prevent race condition
+
 onAuthStateChanged(auth, (user) => {
-    if (user) {
+    if (user && !isRegistering) {
         // If user is already on login page, redirect them.
         const urlParams = new URLSearchParams(window.location.search);
         const redirect = urlParams.get('redirect');
@@ -61,6 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         btn.innerText = "Creando cuenta...";
 
+        isRegistering = true; // LOCK
+
         const name = document.getElementById('reg-name').value;
         const lastname = document.getElementById('reg-lastname').value;
         const dni = document.getElementById('reg-dni').value;
@@ -93,10 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 role: 'patient'
             });
 
+            // NOW we redirect explicitly
             handleSuccessRedirect();
 
         } catch (error) {
             console.error(error);
+            isRegistering = false; // UNLOCK on error
             errDiv.innerText = getErrorMessage(error.code);
             errDiv.style.display = 'block';
             btn.disabled = false;
@@ -119,6 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
+            // onAuthStateChanged will handle redirect for login
+            // But we can also do it here for clarity? 
+            // Actually, onAuthStateChanged will fire. 
+            // Since isRegistering is false, it will redirect.
+            // So we don't necessarily need handleSuccessRedirect() call here if onAuthStateChanged handles it.
+            // BUT, to be safe and explicit:
             handleSuccessRedirect();
         } catch (error) {
             console.error(error);
@@ -130,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function handleSuccessRedirect() {
+        // Unlock just in case, though we are leaving page
+        isRegistering = false;
         const urlParams = new URLSearchParams(window.location.search);
         const redirect = urlParams.get('redirect');
         if (redirect) {

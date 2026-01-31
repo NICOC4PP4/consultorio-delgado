@@ -113,53 +113,75 @@
                 <form id="profile-form">
                     <div class="form-group">
                         <label>Correo Electrónico (No editable)</label>
-                        <input type="email" id="email" disabled style="background:#f3f4f6; color:#666;">
+                        <input type="email" id="email" disabled
+                            style="background:#f3f4f6; color:#666; cursor:not-allowed;">
                     </div>
 
                     <div class="form-group">
                         <label>Nombre</label>
-                        <input type="text" id="firstName" required>
+                        <div style="position: relative;">
+                            <input type="text" id="firstName" disabled style="background:#f3f4f6; color:#666;" required>
+                            <button type="button" class="edit-btn" onclick="enableEdit('firstName')"><i
+                                    class="fas fa-pencil-alt"></i></button>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Apellido</label>
-                        <input type="text" id="lastName" required>
+                        <div style="position: relative;">
+                            <input type="text" id="lastName" disabled style="background:#f3f4f6; color:#666;" required>
+                            <button type="button" class="edit-btn" onclick="enableEdit('lastName')"><i
+                                    class="fas fa-pencil-alt"></i></button>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>DNI</label>
                         <input type="number" id="dni" placeholder="Sin puntos" readonly
-                            style="background:#f3f4f6; color:#666;">
+                            style="background:#f3f4f6; color:#666; cursor:not-allowed;">
+                        <!-- No edit button for DNI -->
                     </div>
 
                     <div class="form-group">
                         <label>Sexo</label>
-                        <select id="gender">
-                            <option value="">Seleccione...</option>
-                            <option value="Femenino">Femenino</option>
-                            <option value="Masculino">Masculino</option>
-                        </select>
+                        <div style="position: relative;">
+                            <select id="gender" disabled style="background:#f3f4f6; color:#666;">
+                                <option value="">Seleccione...</option>
+                                <option value="Femenino">Femenino</option>
+                                <option value="Masculino">Masculino</option>
+                            </select>
+                            <button type="button" class="edit-btn" onclick="enableEdit('gender')"><i
+                                    class="fas fa-pencil-alt"></i></button>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Obra Social / Prepaga</label>
-                        <select id="insurance" required>
-                            <option value="">Seleccione...</option>
-                            <option value="Particular">Particular</option>
-                            <option value="OSDE">OSDE</option>
-                            <option value="Swiss Medical">Swiss Medical</option>
-                            <option value="Galeno">Galeno</option>
-                            <option value="Omint">Omint</option>
-                            <option value="Otra">Otra</option>
-                        </select>
+                        <div style="position: relative;">
+                            <select id="insurance" disabled style="background:#f3f4f6; color:#666;" required>
+                                <option value="">Seleccione...</option>
+                                <option value="Particular">Particular</option>
+                                <option value="OSDE">OSDE</option>
+                                <option value="Swiss Medical">Swiss Medical</option>
+                                <option value="Galeno">Galeno</option>
+                                <option value="Omint">Omint</option>
+                                <option value="Otra">Otra</option>
+                            </select>
+                            <button type="button" class="edit-btn" onclick="enableEdit('insurance')"><i
+                                    class="fas fa-pencil-alt"></i></button>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label>Teléfono de Contacto</label>
-                        <input type="tel" id="phone" required>
+                        <div style="position: relative;">
+                            <input type="tel" id="phone" disabled style="background:#f3f4f6; color:#666;" required>
+                            <button type="button" class="edit-btn" onclick="enableEdit('phone')"><i
+                                    class="fas fa-pencil-alt"></i></button>
+                        </div>
                     </div>
 
-                    <button type="submit" id="save-btn" class="btn-save">
+                    <button type="submit" id="save-btn" class="btn-save" style="display: none;">
                         Guardar Cambios
                     </button>
                 </form>
@@ -187,6 +209,24 @@
 
         let currentUser = null;
 
+        // Make enableEdit available globally
+        window.enableEdit = function (fieldId) {
+            const input = document.getElementById(fieldId);
+            const btn = input.nextElementSibling; // The button is next to input in the wrapper
+
+            input.disabled = false;
+            input.style.backgroundColor = '#fff';
+            input.style.color = '#000';
+            input.style.cursor = 'text';
+            input.focus();
+
+            if (btn && btn.classList.contains('edit-btn')) {
+                btn.style.display = 'none';
+            }
+
+            document.getElementById('save-btn').style.display = 'block';
+        };
+
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 // Not logged in -> Redirect to login with proper return URL
@@ -213,15 +253,21 @@
 
                     // Check DNI Lock
                     if (data.dni) {
+                        // Locked
                         dniInput.readOnly = true;
+                        dniInput.disabled = true; // Visual consistency
                         dniInput.style.backgroundColor = '#f3f4f6';
                         dniInput.style.color = '#666';
                         dniInput.title = "Para cambiar tu DNI, contacta administración.";
                     } else {
+                        // Editable One-time
                         dniInput.readOnly = false;
+                        dniInput.disabled = false; // Enable it
                         dniInput.style.backgroundColor = '#fff';
                         dniInput.style.color = '#000';
                         dniInput.placeholder = "Ingresá tu DNI (Sin puntos)";
+                        // Show save button so they can save it
+                        saveBtn.style.display = 'block';
                     }
                 } else {
                     // Start fresh or use display name if available
