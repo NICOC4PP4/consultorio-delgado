@@ -3,56 +3,33 @@
 ## ✅ Completado
 
 ### 1. Reconstrucción del Sitio Web
-- [x] Migración del diseño a una estructura moderna y responsive (HTML5, CSS3).
-- [x] Creación de página de inicio (`index.html`) con secciones de Profesionales, Especialidades y Contacto.
-- [x] Corrección de estilos, tipografías y colores (Look "Premium").
-- [x] Integración de Google Maps y dirección correcta.
+- [x] **Diseño Premium**: Sitio moderno, responsive y estético (HTML5, CSS3).
+- [x] **Páginas**: Inicio, Turnos (Hub), Perfiles de Médicos, Recetas, Gracias.
+- [x] **Integraciones**: Google Maps, FontAwesome, EmailJS.
 
-### 2. Páginas Internas
-- [x] **Turnos**: `turnos.html` como hub central, derivando a páginas específicas.
-- [x] **Turno Dra. Secondi**: `turno-secondi.html` con formulario personalizado.
-- [x] **Turno Dr. Capparelli**: `turno-capparelli.html` con formulario personalizado.
-- [x] **Recetas**: `receta-secondi.html` y `receta-capparelli.html` con información de pago y formularios.
-- [x] **Gracias**: Página de confirmación `gracias.html`.
+### 2. Backend & Base de Datos
+- [x] **Firebase Integration**: Configuración de Firebase Firestore para persistencia de datos.
+- [x] **Autenticación**: Sistema de login simple para médicos/admin.
 
-### 3. Sistema de Turnos (Frontend)
-- [x] Lógica de generación de turnos en JavaScript (`booking.js`).
-- [x] Grilla de horarios (Lunes a Viernes, 8:00 - 17:00, cada 20 min).
-- [x] Selección de fecha y hora interactiva.
-- [x] Captura de datos del paciente (Nombre, Email, Teléfono, Obra Social).
+### 3. Sistema de Turnos (Booking)
+- [x] **Lógica Inteligente**: `booking.js` con chequeo de disponibilidad en tiempo real.
+- [x] **Reglas de Negocio**:
+    - Bloqueo de turnos ocupados.
+    - Límite de anticipación configurable (ej. 15 días).
+    - Horarios dinámicos según configuración del médico.
+    - Confirmación vía Email.
 
-### 4. Integraciones y Despliegue
-- [x] Configuración de **Netlify Forms** para la recepción de datos.
-- [x] Integración de **EmailJS** para envío automático de confirmaciones al paciente.
-- [x] Despliegue automático desde GitHub.
-- [x] Corrección de rutas de formularios y parámetros de email.
+### 4. Panel de Administración (Panel Médico)
+- [x] **Agenda Diaria**: Vista detallada de turnos, datos de paciente (con email clickable) y acciones (Bloquear/Desbloquear).
+- [x] **Calendario Semanal**: Vista general de la semana, respetando horarios y bloqueos.
+- [x] **Configuración de Horarios**: Pestaña para definir días y hora inicio/fin por día de la semana.
+- [x] **Configuración General**: Ajuste de días de anticipación de turnos.
 
 ---
 
-## 🚧 Pendiente / Próximos Pasos
+## 🚀 Próximos Pasos (Backlog)
 
-### 5. Gestión Avanzada de Turnos (Requiere Base de Datos)
-- [ ] **Disponibilidad en Tiempo Real**:
-    - Evitar que dos pacientes reserven el mismo horario.
-    - Deshabilitar visualmente los turnos ya ocupados.
-- [ ] **Persistencia de Datos**: Conectar una base de datos (ej. Firebase o Supabase) para guardar los turnos confirmados.
-
-### 6. Panel de Administración para Médicos
-- [ ] **Acceso Privado**: Página de login con contraseña para los doctores.
-- [ ] **Gestión de Agenda**:
-    - Ver lista de turnos tomados.
-    - Bloquear días específicos (vacaciones, feriados).
-    - Modificar franjas horarias (ej. cambiar de 8-17 a 9-15 un día puntual).
-    - Liberar turnos cancelados.
-
-### 7. Mejoras de UX/UI
-- [ ] Spinner de carga visual durante el envío del turno.
-- [ ] Validación avanzada de teléfonos y emails.
-
----
-
-## 📋 Nota Técnica
-Para implementar las funciones de "Pendiente", necesitamos migrar de un sitio estático puro a una **Web App Dinámica**.
-**Propuesta:** Usar **Firebase** (de Google) por su facilidad de integración gratuita para:
-1.  **Auth**: Login de médicos.
-2.  **Firestore Database**: Guardar turnos y bloqueos en tiempo real.
+### 5. Optimizaciones
+- [ ] **Email Gratuito (Google Apps Script)**: Migrar el sistema de notificaciones de EmailJS a Google Apps Script para eliminar límites mensuales y usar cuota de Gmail.
+- [ ] **Validaciones Avanzadas**: Mejorar validación de teléfonos en formularios.
+- [ ] **Recordatorios Automáticos**: Script para enviar mails 24hs antes (requiere Cloud Functions o cron externo).
