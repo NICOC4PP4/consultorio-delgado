@@ -366,134 +366,134 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- SUBMISSION LOGIC ---
-    // --- SUBMISSION LOGIC ---
-    if (form) {
-        form.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            console.log("Form submitted");
+    if (typeof document !== 'undefined') {
+        const localSubmitBtn = document.getElementById('submit-btn');
+        if (localSubmitBtn && form) {
+            console.log("Replacing submit listener with direct click listener");
 
-            const btn = document.getElementById('submit-btn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            // Clone to strip old listeners
+            const newSubmitBtn = localSubmitBtn.cloneNode(true);
+            localSubmitBtn.parentNode.replaceChild(newSubmitBtn, localSubmitBtn);
 
-            const formData = new FormData(form);
-            const cleanDate = form.dataset.date;
-            const cleanTime = form.dataset.time;
+            newSubmitBtn.addEventListener('click', async function (event) {
+                event.preventDefault(); // Stop any form default
+                console.log("Button Clicked - Starting Process");
 
-            if (!cleanDate || !cleanTime) {
-                alert("Error: No se ha seleccionado fecha u hora.");
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                return;
-            }
+                const btn = newSubmitBtn;
+                const originalText = btn.innerText;
 
-            // Strict Profile Check before submitting to Firebase
-            if (!currentUser) {
-                alert("Debes iniciar sesión.");
-                return;
-            }
+                // 1. Initial Checks
+                if (!selectedSlotInput.value) {
+                    alert("Por favor, selecciona un horario disponible.");
+                    return;
+                }
 
-            // Re-validate profile data
-            try {
-                console.log("Validating profile for:", currentUser.uid);
-                const docSnap = await getDoc(doc(db, "patients", currentUser.uid));
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    console.log("Profile data loaded:", data);
+                const formData = new FormData(form);
+                const cleanDate = form.dataset.date;
+                const cleanTime = form.dataset.time;
 
-                    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'insurance', 'dni', 'gender'];
-                    const missing = requiredFields.filter(field => {
-                        const val = data[field];
-                        // Check for null, undefined, or empty string safely
-                        return val === null || val === undefined || String(val).trim() === '';
-                    });
+                if (!cleanDate || !cleanTime) {
+                    alert("Error: No se ha seleccionado fecha u hora.");
+                    btn.disabled = false;
+                    btn.innerText = "Confirmar Solicitud";
+                    return;
+                }
 
-                    if (missing.length > 0) {
-                        console.warn("Missing fields:", missing);
-                        alert(`Faltan datos en tu perfil: ${missing.join(', ')}. Por favor complétalos.`);
+                // 2. Auth Check
+                if (!currentUser) {
+                    alert("Debes iniciar sesión.");
+                    btn.disabled = false;
+                    btn.innerText = "Confirmar Solicitud";
+                    return;
+                }
+
+                // 3. Strict Profile Check
+                try {
+                    console.log("Validating profile for:", currentUser.uid);
+                    const docSnap = await getDoc(doc(db, "patients", currentUser.uid));
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'insurance', 'dni', 'gender'];
+                        const missing = requiredFields.filter(field => {
+                            const val = data[field];
+                            return val === null || val === undefined || String(val).trim() === '';
+                        });
+
+                        if (missing.length > 0) {
+                            alert(`Faltan datos en tu perfil: ${missing.join(', ')}. Por favor complétalos.`);
+                            window.location.href = 'perfil-paciente.html';
+                            return;
+                        }
+                    } else {
+                        alert("Perfil no encontrado. Por favor completa tu registro.");
                         window.location.href = 'perfil-paciente.html';
                         return;
                     }
-                } else {
-                    console.warn("No profile document found.");
-                    alert("Perfil no encontrado. Por favor completa tu registro.");
-                    window.location.href = 'perfil-paciente.html';
-                    return;
-                }
-            } catch (err) {
-                console.error("Profile validation error", err);
-                alert("Ocurrió un error al validar su perfil. Intente nuevamente.");
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                return;
-            }
-
-            try {
-                // Check if slot was taken just now
-                const isTaken = await checkSlotTaken(cleanDate, cleanTime);
-                if (isTaken) {
-                    alert("Lo sentimos, este turno acaba de ser reservado por otra persona. Por favor elija otro.");
+                } catch (err) {
+                    console.error("Profile validation error", err);
+                    alert("Error validando perfil: " + (err.message || err));
                     btn.disabled = false;
                     btn.innerHTML = originalText;
-                    renderWeek(currentMonday);
                     return;
                 }
 
-                console.log("Saving to Firestore...");
-
-                // 1. SAVE TO FIREBASE
-                await addDoc(collection(db, "appointments"), {
-                    doctor: doctorId,
-                    date: cleanDate,
-                    time: cleanTime,
-                    patientName: formData.get('nombre') + ' ' + formData.get('apellido'),
-                    patientEmail: formData.get('email'),
-                    patientPhone: formData.get('telefono'),
-                    insurance: formData.get('cobertura'),
-                    status: 'confirmed',
-                    timestamp: new Date(),
-                    patientUid: currentUser ? currentUser.uid : null
-                });
-
-                console.log("Firestore saved. Sending email...");
-
-                // 2. SEND EMAIL
-                const EMAILJS_PUBLIC_KEY = "yp2cTT12Ti6VmL4iN";
-                const EMAILJS_SERVICE_ID = "service_0wgkq1l";
-                const EMAILJS_TEMPLATE_ID = "template_zkapdb6";
-
+                // 4. Booking
                 try {
-                    if (typeof emailjs !== 'undefined') {
-                        emailjs.init(EMAILJS_PUBLIC_KEY);
-                        const doctorNamePretty = doctorId === 'secondi' ? 'Dra. Secondi' : 'Dr. Capparelli';
-
-                        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-                            email: formData.get('email'),
-                            to_name: formData.get('nombre') + ' ' + formData.get('apellido'),
-                            doctor_name: doctorNamePretty,
-                            date_time: `${cleanDate} ${cleanTime}`
-                        });
-                        console.log("Email sent.");
-                    } else {
-                        console.warn("EmailJS library not loaded");
+                    const isTaken = await checkSlotTaken(cleanDate, cleanTime);
+                    if (isTaken) {
+                        alert("Lo sentimos, este turno acaba de ser reservado por otra persona.");
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        renderWeek(currentMonday);
+                        return;
                     }
-                } catch (emailErr) {
-                    console.error("EmailJS Error (non-blocking):", emailErr);
+
+                    console.log("Saving to Firestore...");
+                    await addDoc(collection(db, "appointments"), {
+                        doctor: doctorId,
+                        date: cleanDate,
+                        time: cleanTime,
+                        patientName: formData.get('nombre') + ' ' + formData.get('apellido'),
+                        patientEmail: formData.get('email'),
+                        patientPhone: formData.get('telefono'),
+                        insurance: formData.get('cobertura'),
+                        status: 'confirmed',
+                        timestamp: new Date(),
+                        patientUid: currentUser.uid
+                    });
+
+                    // Email Logic
+                    try {
+                        const EMAILJS_PUBLIC_KEY = "yp2cTT12Ti6VmL4iN";
+                        const EMAILJS_SERVICE_ID = "service_0wgkq1l";
+                        const EMAILJS_TEMPLATE_ID = "template_zkapdb6";
+
+                        if (typeof emailjs !== 'undefined') {
+                            emailjs.init(EMAILJS_PUBLIC_KEY);
+                            const doctorNamePretty = doctorId === 'secondi' ? 'Dra. Secondi' : 'Dr. Capparelli';
+                            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                                email: formData.get('email'),
+                                to_name: formData.get('nombre') + ' ' + formData.get('apellido'),
+                                doctor_name: doctorNamePretty,
+                                date_time: `${cleanDate} ${cleanTime}`
+                            });
+                        }
+                    } catch (e) { console.warn("Email error (non-fatal)", e); }
+
+                    window.location.href = 'gracias.html';
+
+                } catch (error) {
+                    console.error("Error booking:", error);
+                    alert("Hubo un error al procesar el turno: " + error.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
                 }
-
-                window.location.href = 'gracias.html';
-
-            } catch (error) {
-                console.error("Error booking:", error);
-                alert("Hubo un error al procesar el turno: " + error.message);
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
-    } else {
-        console.error("Booking form not found in DOM.");
+            });
+        }
     }
 
     async function checkSlotTaken(date, time) {
