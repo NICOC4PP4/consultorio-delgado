@@ -67,35 +67,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = user.email ? user.email.toLowerCase() : '';
             if (email !== ALLOWED_ADMIN.toLowerCase()) {
                 // Not the admin -> Sign out and Redirect
+                // Using a small delay or just alert + redirect
                 alert("Acceso denegado. Este usuario no tiene permisos de administrador.");
                 await signOut(auth);
                 window.location.href = 'index.html';
                 return;
             }
 
+            // Allowed Admin
             currentUser = user;
-            loginSection.style.display = 'none';
-            dashboardSection.style.display = 'block';
+            if (loginSection) loginSection.style.display = 'none';
+            if (dashboardSection) dashboardSection.style.display = 'block';
 
             // Default view or logic
             updateDailyView();
         } else {
+            // No User
             currentUser = null;
-            loginSection.style.display = 'block';
-            dashboardSection.style.display = 'none';
+            if (loginSection) loginSection.style.display = 'block';
+            if (dashboardSection) dashboardSection.style.display = 'none';
         }
     });
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
             const emailInput = document.getElementById('admin-email');
             const passwordInput = document.getElementById('admin-password');
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
+            const email = emailInput ? emailInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value.trim() : '';
 
-            authError.style.display = 'none';
-            authError.textContent = '';
+            if (authError) {
+                authError.style.display = 'none';
+                authError.textContent = '';
+            }
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
@@ -103,20 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error("Login failed:", error);
 
-                // Specific error handling
-                if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    authError.textContent = "Contraseña incorrecta o usuario no encontrado.";
-                } else if (error.code === 'auth/user-not-found') {
-                    authError.textContent = "No existe un usuario con este email.";
-                } else if (error.code === 'auth/invalid-email') {
-                    authError.textContent = "El formato del email es inválido.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    authError.textContent = "Demasiados intentos fallidos. Intente más tarde.";
-                } else {
-                    authError.textContent = "Error al iniciar sesión: " + error.message;
+                if (authError) {
+                    // Specific error handling
+                    const code = error.code;
+                    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+                        authError.textContent = "Contraseña incorrecta o usuario no encontrado.";
+                    } else if (code === 'auth/user-not-found') {
+                        authError.textContent = "No existe un usuario con este email.";
+                    } else if (code === 'auth/invalid-email') {
+                        authError.textContent = "El formato del email es inválido.";
+                    } else if (code === 'auth/too-many-requests') {
+                        authError.textContent = "Demasiados intentos fallidos. Intente más tarde.";
+                    } else {
+                        authError.textContent = "Error al iniciar sesión: " + error.message;
+                    }
+                    authError.style.display = 'block';
                 }
-
-                authError.style.display = 'block';
             }
         });
     }
@@ -127,50 +135,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NAVIGATION & TABS ---
 
-    tabDaily.addEventListener('click', () => switchView('daily'));
-    tabWeekly.addEventListener('click', () => switchView('weekly'));
-    tabRecurrence.addEventListener('click', () => switchView('recurrence'));
-    tabConfig.addEventListener('click', () => switchView('config'));
+    if (tabDaily) tabDaily.addEventListener('click', () => switchView('daily'));
+    if (tabWeekly) tabWeekly.addEventListener('click', () => switchView('weekly'));
+    if (tabRecurrence) tabRecurrence.addEventListener('click', () => switchView('recurrence'));
+    if (tabConfig) tabConfig.addEventListener('click', () => switchView('config'));
 
-    doctorSelect.addEventListener('change', () => {
-        if (viewDaily.style.display !== 'none') updateDailyView();
-        else if (viewWeekly.style.display !== 'none') renderAdminWeek(currentMonday);
-        else if (viewRecurrence.style.display !== 'none') loadScheduleConfig();
-        else if (viewConfig.style.display !== 'none') loadScheduleConfig();
-    });
+    if (doctorSelect) {
+        doctorSelect.addEventListener('change', () => {
+            // Only update if visible to save calls
+            if (viewDaily && viewDaily.style.display !== 'none') updateDailyView();
+            else if (viewWeekly && viewWeekly.style.display !== 'none') renderAdminWeek(currentMonday);
+            else if (viewRecurrence && viewRecurrence.style.display !== 'none') loadScheduleConfig();
+            else if (viewConfig && viewConfig.style.display !== 'none') loadScheduleConfig();
+        });
+    }
 
     function switchView(viewName) {
         // Reset ALL
-        viewDaily.style.display = 'none';
-        viewWeekly.style.display = 'none';
-        viewRecurrence.style.display = 'none';
-        viewConfig.style.display = 'none';
+        if (viewDaily) viewDaily.style.display = 'none';
+        if (viewWeekly) viewWeekly.style.display = 'none';
+        if (viewRecurrence) viewRecurrence.style.display = 'none';
+        if (viewConfig) viewConfig.style.display = 'none';
 
+        // Helper to safe toggle classes
         [tabDaily, tabWeekly, tabRecurrence, tabConfig].forEach(t => {
-            t.classList.remove('active', 'btn-primary');
-            t.classList.add('btn-outline');
+            if (t) {
+                t.classList.remove('active', 'btn-primary');
+                t.classList.add('btn-outline');
+            }
         });
 
+        // Activate requested
         if (viewName === 'daily') {
-            viewDaily.style.display = 'block';
-            tabDaily.classList.add('active');
-            tabDaily.classList.remove('btn-outline');
+            if (viewDaily) viewDaily.style.display = 'block';
+            if (tabDaily) {
+                tabDaily.classList.add('active');
+                tabDaily.classList.remove('btn-outline');
+            }
             updateDailyView();
         } else if (viewName === 'weekly') {
-            viewWeekly.style.display = 'block';
-            tabWeekly.classList.add('active');
-            tabWeekly.classList.remove('btn-outline');
+            if (viewWeekly) viewWeekly.style.display = 'block';
+            if (tabWeekly) {
+                tabWeekly.classList.add('active');
+                tabWeekly.classList.remove('btn-outline');
+            }
             renderAdminWeek(currentMonday);
         } else if (viewName === 'recurrence') {
-            viewRecurrence.style.display = 'block';
-            tabRecurrence.classList.add('active');
-            tabRecurrence.classList.remove('btn-outline');
+            if (viewRecurrence) viewRecurrence.style.display = 'block';
+            if (tabRecurrence) {
+                tabRecurrence.classList.add('active');
+                tabRecurrence.classList.remove('btn-outline');
+            }
             loadScheduleConfig();
         } else if (viewName === 'config') {
-            viewConfig.style.display = 'block';
-            tabConfig.classList.add('active');
-            tabConfig.classList.remove('btn-outline');
+            if (viewConfig) viewConfig.style.display = 'block';
+            if (tabConfig) {
+                tabConfig.classList.add('active');
+                tabConfig.classList.remove('btn-outline');
+            }
             loadScheduleConfig();
+        }
+        // Note: Patients view logic is handled separately below in its own block,
+        // but switchView must handle hiding it. Added check below.
+        if (typeof viewPatients !== 'undefined' && viewPatients) {
+            if (viewName !== 'patients') viewPatients.style.display = 'none';
+        }
+        if (typeof tabPatients !== 'undefined' && tabPatients && viewName !== 'patients') {
+            tabPatients.classList.remove('active', 'btn-primary');
+            tabPatients.classList.add('btn-outline');
         }
     }
 
