@@ -60,8 +60,8 @@
                     <li><a href="perfil-paciente.html" class="btn-nav btn-white-box">Mi Perfil</a></li>
                     <li><a href="mis-turnos.html" class="btn-nav btn-white-box" style="margin-left:0.5rem;">Mis
                             Turnos</a></li>
-                    <li><a href="turnos.html" class="btn-nav">Solicitar Turno</a></li>
-                    <li><a href="#" id="logout-btn" style="display:none; color:#666;"><i
+                    <li><a href="#" id="logout-btn" class="btn-nav"
+                            style="margin-left:0.5rem; background: transparent; border: 1px solid white; color: white;"><i
                                 class="fas fa-sign-out-alt"></i> Salir</a></li>
                 </ul>
             </nav>
@@ -110,6 +110,35 @@
             </div>
         </div>
     </footer>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Check auth state just to ensure UI consistency if needed
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                // If not logged in, maybe redirect or show different nav?
+                // For now, assuming this page is accessed by logged in users or public.
+                // If public, we might want to hide "Mi Perfil" etc. but user flow implies logged in.
+                // Keeping simple for now as per request.
+            }
+        });
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    await signOut(auth);
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error("Logout failed", error);
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
