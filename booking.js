@@ -383,30 +383,40 @@ document.addEventListener('DOMContentLoaded', () => {
             // Strict Profile Check before submitting to Firebase
             if (!currentUser) {
                 alert("Debes iniciar sesión.");
-                // Redirect logic handled by auth state listener but safety here
                 return;
             }
 
-            // Re-validate profile data just in case
+            // Re-validate profile data
             try {
+                console.log("Validating profile for:", currentUser.uid);
                 const docSnap = await getDoc(doc(db, "patients", currentUser.uid));
+
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    console.log("Profile data loaded:", data);
+
                     const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'insurance', 'dni', 'gender'];
-                    const missing = requiredFields.some(field => !data[field] || data[field].toString().trim() === '');
-                    if (missing) {
-                        alert("Faltan datos en tu perfil. Por favor complétalos antes de confirmar.");
+                    const missing = requiredFields.filter(field => {
+                        const val = data[field];
+                        // Check for null, undefined, or empty string safely
+                        return val === null || val === undefined || String(val).trim() === '';
+                    });
+
+                    if (missing.length > 0) {
+                        console.warn("Missing fields:", missing);
+                        alert(`Faltan datos en tu perfil: ${missing.join(', ')}. Por favor complétalos.`);
                         window.location.href = 'perfil-paciente.html';
                         return;
                     }
                 } else {
+                    console.warn("No profile document found.");
                     alert("Perfil no encontrado. Por favor completa tu registro.");
                     window.location.href = 'perfil-paciente.html';
                     return;
                 }
             } catch (err) {
                 console.error("Profile validation error", err);
-                alert("Error validando perfil. Intente nuevamente.");
+                alert("Ocurrió un error al validar su perfil. Intente nuevamente.");
                 btn.disabled = false;
                 btn.innerHTML = originalText;
                 return;
