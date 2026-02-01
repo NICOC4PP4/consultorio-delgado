@@ -62,11 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- AUTHENTICATION ---
     const ALLOWED_ADMIN = 'turnosconsultoriodelgado@gmail.com';
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
-            if (user.email.toLowerCase() !== ALLOWED_ADMIN.toLowerCase()) {
-                // Not the admin -> Redirect
-                alert("Acceso denegado. Área exclusiva para administradores.");
+            const email = user.email ? user.email.toLowerCase() : '';
+            if (email !== ALLOWED_ADMIN.toLowerCase()) {
+                // Not the admin -> Sign out and Redirect
+                alert("Acceso denegado. Este usuario no tiene permisos de administrador.");
+                await signOut(auth);
                 window.location.href = 'index.html';
                 return;
             }
@@ -87,15 +89,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
+            const emailInput = document.getElementById('admin-email');
+            const passwordInput = document.getElementById('admin-password');
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+
             authError.style.display = 'none';
+            authError.textContent = '';
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
+                // Listener handles redirect
             } catch (error) {
                 console.error("Login failed:", error);
-                authError.textContent = "Credenciales inválidas.";
+
+                // Specific error handling
+                if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    authError.textContent = "Contraseña incorrecta o usuario no encontrado.";
+                } else if (error.code === 'auth/user-not-found') {
+                    authError.textContent = "No existe un usuario con este email.";
+                } else if (error.code === 'auth/invalid-email') {
+                    authError.textContent = "El formato del email es inválido.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    authError.textContent = "Demasiados intentos fallidos. Intente más tarde.";
+                } else {
+                    authError.textContent = "Error al iniciar sesión: " + error.message;
+                }
+
                 authError.style.display = 'block';
             }
         });
