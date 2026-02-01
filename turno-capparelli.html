@@ -122,27 +122,17 @@
 
                     <div class="form-group">
                         <label>Obra Social / Prepaga *</label>
-                        <select name="cobertura" required>
-                            <option value="">Seleccione...</option>
-                            <option value="Particular">Particular</option>
-                            <option value="Swiss Medical">Swiss Medical</option>
-                            <option value="OSDE">OSDE</option>
-                            <option value="Galeno">Galeno</option>
-                            <option value="Omint">Omint</option>
-                            <option value="Luis Pasteur">Luis Pasteur</option>
-                            <option value="OSA">OSA</option>
-                            <option value="Otra">Otra</option>
-                        </select>
+                        <input type="text" name="cobertura" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
                         <label>Correo Electrónico *</label>
-                        <input type="email" name="email" required>
+                        <input type="email" name="email" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
                         <label>Teléfono de Contacto *</label>
-                        <input type="tel" name="telefono" required>
+                        <input type="tel" name="telefono" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="alert-box" style="padding: 1rem; font-size: 0.9rem;">
@@ -167,6 +157,19 @@
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script type="module" src="booking.js"></script>
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await signOut(auth);
+                window.location.href = 'index.html';
+            });
+        }
+    </script>
 </body>
 
 </html>

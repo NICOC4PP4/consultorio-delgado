@@ -46,9 +46,15 @@
             <a href="index.html" class="logo">Consultorio<span>Delgado</span></a>
             <nav>
                 <ul class="nav-links">
-                    <li><a href="index.html#inicio">Inicio</a></li>
-                    <li><a href="index.html#profesionales">Profesionales</a></li>
-                    <li><a href="turnos.html" class="btn-nav">Volver</a></li>
+                    <li><a href="perfil-paciente.html" class="btn-nav btn-white-box">Mi Perfil</a></li>
+                    <li><a href="mis-turnos.html" class="btn-nav btn-white-box" style="margin-left:0.5rem;">Mis
+                            Turnos</a></li>
+                    <li><a href="turnos.html" class="btn-primary"
+                            style="margin-left:0.5rem; padding: 0.5rem 1.5rem; color: white !important;">Solicitar
+                            Turno</a></li>
+                    <li><a href="#" id="logout-btn" class="btn-nav"
+                            style="margin-left:0.5rem; background: transparent; border: 1px solid white; color: white;"><i
+                                class="fas fa-sign-out-alt"></i> Salir</a></li>
                 </ul>
             </nav>
         </div>
@@ -122,25 +128,17 @@
 
                     <div class="form-group">
                         <label>Obra Social / Prepaga *</label>
-                        <select name="cobertura" required>
-                            <option value="">Seleccione...</option>
-                            <option value="Particular">Particular</option>
-                            <option value="OSDE">OSDE</option>
-                            <option value="Swiss Medical">Swiss Medical</option>
-                            <option value="Galeno">Galeno</option>
-                            <option value="Omint">Omint</option>
-                            <option value="Otra">Otra</option>
-                        </select>
+                        <input type="text" name="cobertura" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
                         <label>Correo Electrónico *</label>
-                        <input type="email" name="email" required>
+                        <input type="email" name="email" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="form-group">
                         <label>Teléfono de Contacto *</label>
-                        <input type="tel" name="telefono" required>
+                        <input type="tel" name="telefono" required readonly style="background:#f3f4f6; color:#666;">
                     </div>
 
                     <div class="alert-box" style="padding: 1rem; font-size: 0.9rem;">
@@ -165,6 +163,19 @@
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script type="module" src="booking.js"></script>
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await signOut(auth);
+                window.location.href = 'index.html';
+            });
+        }
+    </script>
 </body>
 
 </html>

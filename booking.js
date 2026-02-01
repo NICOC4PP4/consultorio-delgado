@@ -380,6 +380,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Strict Profile Check before submitting to Firebase
+            if (!currentUser) {
+                alert("Debes iniciar sesión.");
+                // Redirect logic handled by auth state listener but safety here
+                return;
+            }
+
+            // Re-validate profile data just in case
+            try {
+                const docSnap = await getDoc(doc(db, "patients", currentUser.uid));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'insurance', 'dni', 'gender'];
+                    const missing = requiredFields.some(field => !data[field] || data[field].toString().trim() === '');
+                    if (missing) {
+                        alert("Faltan datos en tu perfil. Por favor complétalos antes de confirmar.");
+                        window.location.href = 'perfil-paciente.html';
+                        return;
+                    }
+                } else {
+                    alert("Perfil no encontrado. Por favor completa tu registro.");
+                    window.location.href = 'perfil-paciente.html';
+                    return;
+                }
+            } catch (err) {
+                console.error("Profile validation error", err);
+                alert("Error validando perfil. Intente nuevamente.");
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
             try {
                 // Check if slot was taken just now
                 const isTaken = await checkSlotTaken(cleanDate, cleanTime);
