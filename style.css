@@ -664,6 +664,28 @@ header.scrolled {
         font-size: 2.25rem;
     }
 
+    /* Fix global container padding on mobile */
+    .container {
+        padding: 0 1.5rem;
+        /* Ensure 24px sides */
+    }
+
+    /* Fix Booking Containers on Mobile */
+    .dashboard-container,
+    .booking-container {
+        /* Assuming these classes wrapper the white box */
+        padding: 1.5rem !important;
+        /* Reduce padding from 3rem to 1.5rem */
+        margin-top: 2rem !important;
+        margin-bottom: 2rem !important;
+        width: 100% !important;
+    }
+
+    /* Ensure body doesn't overflow or touch edges weirdly */
+    body {
+        overflow-x: hidden;
+    }
+
     .nav-links {
         display: none;
         position: absolute;
@@ -707,6 +729,26 @@ header.scrolled {
 
     .doctor-img {
         height: 300px;
+    }
+
+    /* Calendar Fixes for Mobile */
+    .calendar-grid {
+        min-width: 100%;
+        /* Allow scroll or fit */
+        overflow-x: auto;
+        /* Enable scroll if needed */
+        display: flex;
+        /* Switch to flex column or scrollable row? User image showed it squeezed. */
+        /* Actually better to keep grid but ensure wrapper allows scroll */
+        display: grid;
+        min-width: 500px;
+        /* Keep minimum to prevent squashing */
+    }
+
+    /* Add scroll wrapper for calendar */
+    #calendar-grid {
+        overflow-x: auto;
+        padding-bottom: 1rem;
     }
 }
 

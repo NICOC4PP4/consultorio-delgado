@@ -470,6 +470,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             return val === null || val === undefined || String(val).trim() === '';
                         });
 
+                        // New Fields Validation (Strict)
+                        const motivo = formData.get('motivo_consulta');
+                        const primeraVez = formData.get('primera_vez');
+
+                        // Validate specific to doctor
+                        if (doctorId === 'secondi' && !motivo) missing.push("Tipo de Consulta");
+
+                        // Validate for both if element exists in form (checked via formData)
+                        // If the field exists in DOM but not selected, formData usually has it as empty string if required or not present if disabled selected empty
+                        if (form.primera_vez && (!primeraVez || primeraVez === '')) {
+                            missing.push("¿Es primera vez?");
+                        }
+
+                        if (doctorId === 'secondi' && (form.motivo_consulta && (!motivo || motivo === ''))) {
+                            missing.push("Tipo de Consulta");
+                        }
+
                         if (missing.length > 0) {
                             console.warn("❌ Missing profile fields:", missing);
                             alert(`Faltan datos en tu perfil: ${missing.join(', ')}. Por favor complétalos.`);
