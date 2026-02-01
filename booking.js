@@ -358,8 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.add('active');
 
         selectedSlotInput.value = `${dateStr} ${timeStr}`;
-        slotDisplay.textContent = `Turno seleccionado: ${dateStr} a las ${timeStr}hs`;
-        submitBtn.disabled = false;
+        selectedSlotDisplay.textContent = `Turno seleccionado: ${dateStr} a las ${timeStr}hs`;
+
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
 
         form.dataset.date = dateStr;
         form.dataset.time = timeStr;
