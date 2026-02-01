@@ -371,7 +371,7 @@
                 const dateObj = new Date(appt.date + 'T00:00:00');
                 const dateStr = dateObj.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-                const doctorName = appt.doctor === 'secondi' ? 'Dra. Ma. Verónica Secondi' : 'Dr. Guillermo Capparelli';
+                const doctorName = appt.doctor === 'secondi' ? 'Dra. Ma. Verónica Secondi' : 'Dr. Germán Capparelli';
                 const isCancelled = appt.status === 'cancelled';
 
                 let statusBadge = '';
