@@ -49,7 +49,12 @@ onAuthStateChanged(auth, async (user) => {
                 if (form.sexo) form.sexo.value = data.gender || '';
 
                 // Dr. Secondi Specific Autofill
-                if (form.primera_vez && data.isReturningPatient_secondi) {
+                if (form.primera_vez && data.isReturningPatient_secondi && doctorId === 'secondi') {
+                    form.primera_vez.value = "No";
+                }
+
+                // Dr. Capparelli Specific Autofill
+                if (form.primera_vez && data.isReturningPatient_capparelli && doctorId === 'capparelli') {
                     form.primera_vez.value = "No";
                 }
 
@@ -520,9 +525,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (doctorId === 'secondi' && primeraVez === 'No') {
                         try {
                             const userRef = doc(db, "patients", currentUser.uid);
-                            // We use setDoc with merge to avoid overwriting invalidly if partial
                             await setDoc(userRef, { isReturningPatient_secondi: true }, { merge: true });
                             console.log("✅ Updated patient profile as Returning for Secondi");
+                        } catch (err) {
+                            console.warn("Could not update patient return status", err);
+                        }
+                    }
+
+                    if (doctorId === 'capparelli' && primeraVez === 'No') {
+                        try {
+                            const userRef = doc(db, "patients", currentUser.uid);
+                            await setDoc(userRef, { isReturningPatient_capparelli: true }, { merge: true });
+                            console.log("✅ Updated patient profile as Returning for Capparelli");
                         } catch (err) {
                             console.warn("Could not update patient return status", err);
                         }
