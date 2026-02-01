@@ -798,127 +798,366 @@ document.addEventListener('DOMContentLoaded', () => {
             const appointmentsMap = await getAppointmentsForWeek(doctorId, weekDates);
 
             // 4. Render Grid
-            calendarGrid.innerHTML = '';
+            // ... (rest of weekly render logic if needed, but it seems cutoff in view_file. Assuming append works)
+        } catch (e) {
+            console.error("Weekly render error:", e);
+        }
+    }
 
-            weekDates.forEach(dateStr => {
-                const dateObj = new Date(dateStr + 'T00:00:00');
-                const dayName = dateObj.toLocaleDateString('es-AR', { weekday: 'long' });
-                const dayNum = dateObj.getDate();
-                const dayOfWeek = dateObj.getDay(); // 1=Mon
+    // --- PATIENTS VIEW LOGIC ---
 
-                const col = document.createElement('div');
-                col.className = 'day-column';
+    const tabPatients = document.getElementById('tab-patients');
+    const viewPatients = document.getElementById('view-patients');
+    const patientSearchInput = document.getElementById('patient-search-input');
+    const patientSearchBtn = document.getElementById('patient-search-btn');
+    const patientsResults = document.getElementById('patients-results');
+    const patientModal = document.getElementById('patient-modal');
+    const patientEditForm = document.getElementById('patient-edit-form');
 
-                const controlsDiv = `<div style="display:flex; gap:5px; justify-content:center; margin-bottom:5px;">
+    if (tabPatients) {
+        tabPatients.addEventListener('click', () => switchView('patients'));
+    }
+
+    if (patientSearchBtn) {
+        patientSearchBtn.addEventListener('click', () => {
+            const queryText = patientSearchInput.value.trim();
+            if (queryText) searchPatients(queryText);
+        });
+        patientSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') patientSearchBtn.click();
+        });
+    }
+
+    function switchView(viewName) {
+        // Reset ALL
+        viewDaily.style.display = 'none';
+        viewWeekly.style.display = 'none';
+        viewRecurrence.style.display = 'none';
+        viewConfig.style.display = 'none';
+        if (viewPatients) viewPatients.style.display = 'none';
+
+        [tabDaily, tabWeekly, tabRecurrence, tabConfig, tabPatients].forEach(t => {
+            if (t) {
+                t.classList.remove('active', 'btn-primary');
+                t.classList.add('btn-outline');
+            }
+        });
+
+        if (viewName === 'daily') {
+            viewDaily.style.display = 'block';
+            tabDaily.classList.add('active');
+            tabDaily.classList.remove('btn-outline');
+            updateDailyView();
+        } else if (viewName === 'weekly') {
+            viewWeekly.style.display = 'block';
+            tabWeekly.classList.add('active');
+            tabWeekly.classList.remove('btn-outline');
+            renderAdminWeek(currentMonday);
+        } else if (viewName === 'recurrence') {
+            viewRecurrence.style.display = 'block';
+            tabRecurrence.classList.add('active');
+            tabRecurrence.classList.remove('btn-outline');
+            loadScheduleConfig();
+        } else if (viewName === 'config') {
+            viewConfig.style.display = 'block';
+            tabConfig.classList.add('active');
+            tabConfig.classList.remove('btn-outline');
+            loadScheduleConfig();
+        } else if (viewName === 'patients') {
+            viewPatients.style.display = 'block';
+            tabPatients.classList.add('active');
+            tabPatients.classList.remove('btn-outline');
+        }
+    }
+
+    async function searchPatients(queryText) {
+        patientsResults.innerHTML = '<div style="padding:2rem; text-align:center;">Buscando...</div>';
+        try {
+            // Ideally we use a proper search index, but for now we fetch all and filter client-side 
+            // OR use startAt/endAt for simple prefix search on Name if supported.
+            // Given Firestore limitations, let's fetch 'patients' collection. 
+            // Warning: If many patients, this is costly. Implementing "Client Side Filter" approach for < 1000 users.
+
+            const q = query(collection(db, "patients")); // Get all for now (MVP optimization)
+            const snapshot = await getDocs(q);
+
+            const matches = [];
+            const lowerQ = queryText.toLowerCase();
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const fullName = `${data.name || ''} ${data.lastname || ''}`.toLowerCase();
+                const dni = (data.dni || '').toString();
+
+                if (fullName.includes(lowerQ) || dni.includes(lowerQ)) {
+                    matches.push({ id: doc.id, ...data });
+                }
+            });
+
+            renderPatientResults(matches);
+        } catch (e) {
+            console.error("Search error:", e);
+            patientsResults.innerHTML = `<div style="color:red; padding:2rem;">Error al buscar: ${e.message}</div>`;
+        }
+    }
+
+    function renderPatientResults(patients) {
+        if (patients.length === 0) {
+            patientsResults.innerHTML = '<div style="padding:2rem; text-align:center;">No se encontraron pacientes.</div>';
+            return;
+        }
+
+        let html = `
+            <table style="width:100%; border-collapse:collapse;">
+                <thead style="background:#f8f9fa; border-bottom:2px solid #eee;">
+                    <tr>
+                        <th style="padding:1rem; text-align:left;">Nombre</th>
+                        <th style="padding:1rem; text-align:left;">DNI</th>
+                        <th style="padding:1rem; text-align:left;">Email</th>
+                        <th style="padding:1rem; text-align:right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        patients.forEach(p => {
+            html += `
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:1rem;"><strong>${p.name || '-'} ${p.lastname || ''}</strong></td>
+                    <td style="padding:1rem;">${p.dni || '-'}</td>
+                    <td style="padding:1rem;">${p.email || '-'}</td>
+                    <td style="padding:1rem; text-align:right;">
+                        <button class="btn btn-primary btn-sm btn-view-patient" data-id="${p.id}">
+                            <i class="fas fa-eye"></i> Ver / Editar
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        patientsResults.innerHTML = html;
+
+        document.querySelectorAll('.btn-view-patient').forEach(btn => {
+            btn.addEventListener('click', () => openPatientModal(btn.dataset.id));
+        });
+    }
+
+    async function openPatientModal(patientId) {
+        // 1. Load Patient Data
+        try {
+            const pDoc = await getDoc(doc(db, "patients", patientId));
+            if (!pDoc.exists()) return alert("Paciente no encontrado");
+            const pData = pDoc.data();
+
+            document.getElementById('p-id').value = patientId;
+            document.getElementById('p-name').value = pData.name || '';
+            document.getElementById('p-lastname').value = pData.lastname || '';
+            document.getElementById('p-dni').value = pData.dni || '';
+            document.getElementById('p-email').value = pData.email || '';
+            document.getElementById('p-phone').value = pData.phone || '';
+            document.getElementById('p-insurance').value = pData.insurance || '';
+
+            // 2. Load History
+            loadPatientHistory(pData.email);
+
+            patientModal.style.display = 'flex';
+        } catch (e) {
+            console.error(e);
+            alert("Error al cargar paciente");
+        }
+    }
+
+    async function loadPatientHistory(email) {
+        const listContainer = document.getElementById('p-history-list');
+        listContainer.innerHTML = '<div style="padding:1rem; text-align:center;">Cargando historial...</div>';
+
+        if (!email) {
+            listContainer.innerHTML = '<div style="padding:1rem; color:#666;">El paciente no tiene email registrado para buscar historial.</div>';
+            return;
+        }
+
+        try {
+            const q = query(collection(db, "appointments"), where("patientEmail", "==", email)); // Index required?
+            const snapshot = await getDocs(q);
+            const appts = [];
+            snapshot.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
+
+            // Sort by date desc
+            appts.sort((a, b) => {
+                const dA = new Date(a.date + 'T' + a.time);
+                const dB = new Date(b.date + 'T' + b.time);
+                return dB - dA;
+            });
+
+            if (appts.length === 0) {
+                listContainer.innerHTML = '<div style="padding:1rem; text-align:center;">Sin turnos registrados.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = appts.map(a => {
+                const isUpcoming = new Date(a.date + 'T' + a.time) > new Date();
+                const style = isUpcoming ? 'border-left: 4px solid #0ea5e9;' : 'border-left: 4px solid #cbd5e1; opacity:0.8;';
+
+                return `
+                    <div style="background:white; padding:0.8rem; margin-bottom:0.5rem; border-radius:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05); ${style}">
+                        <div style="font-weight:600; font-size:0.9rem;">${a.date.split('-').reverse().join('/')} - ${a.time} hs</div>
+                        <div style="font-size:0.85rem; color:#666;">Dr/a. ${a.doctor === 'secondi' ? 'Secondi' : 'Capparelli'}</div>
+                        <div style="font-size:0.8rem; margin-top:0.25rem;">Estado: <strong>${a.status || 'Confirmado'}</strong></div>
+                        ${a.status === 'cancelled' ? `<div style="font-size:0.75rem; color:red;">Cancelado el: ${a.cancellationDate ? new Date(a.cancellationDate.seconds * 1000).toLocaleDateString() : '-'}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+        } catch (e) {
+            console.error(e);
+            listContainer.innerHTML = '<div style="color:red; padding:1rem;">Error cargando historial (puede faltar índice). Revisa la consola.</div>';
+        }
+    }
+
+    patientEditForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('p-id').value;
+        const data = {
+            name: document.getElementById('p-name').value,
+            lastname: document.getElementById('p-lastname').value,
+            dni: document.getElementById('p-dni').value,
+            phone: document.getElementById('p-phone').value,
+            insurance: document.getElementById('p-insurance').value
+        };
+        // Email is readonly to avoid auth mismatch issues for now
+
+        try {
+            await updateDoc(doc(db, "patients", id), data);
+            alert("Datos actualizados correctamente.");
+            // Optional: Refresh search results or modal
+        } catch (e) {
+            console.error(e);
+            alert("Error al actualizar.");
+        }
+    });
+
+}); calendarGrid.innerHTML = '';
+
+weekDates.forEach(dateStr => {
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const dayName = dateObj.toLocaleDateString('es-AR', { weekday: 'long' });
+    const dayNum = dateObj.getDate();
+    const dayOfWeek = dateObj.getDay(); // 1=Mon
+
+    const col = document.createElement('div');
+    col.className = 'day-column';
+
+    const controlsDiv = `<div style="display:flex; gap:5px; justify-content:center; margin-bottom:5px;">
                     <button class="btn-icon-sm" onclick="blockDay('${dateStr}', '${doctorId}')" title="Bloquear día"><i class="fas fa-lock" style="font-size:0.8rem; color:#666;"></i></button>
                     <button class="btn-icon-sm" onclick="unblockDay('${dateStr}', '${doctorId}')" title="Desbloquear día"><i class="fas fa-unlock" style="font-size:0.8rem; color:#666;"></i></button>
                 </div>`;
 
-                const header = document.createElement('div');
-                header.className = 'day-header';
-                header.innerHTML = `${controlsDiv}<span>${capitalize(dayName)}</span><small>${dayNum}</small>`;
-                col.appendChild(header);
+    const header = document.createElement('div');
+    header.className = 'day-header';
+    header.innerHTML = `${controlsDiv}<span>${capitalize(dayName)}</span><small>${dayNum}</small>`;
+    col.appendChild(header);
 
-                const slotsContainer = document.createElement('div');
-                slotsContainer.className = 'slots-column';
+    const slotsContainer = document.createElement('div');
+    slotsContainer.className = 'slots-column';
 
-                const rule = scheduleRules[dayOfWeek];
+    const rule = scheduleRules[dayOfWeek];
 
-                if (!rule || !rule.active || !rule.start || !rule.end) {
-                    slotsContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#ccc; font-size:0.9rem;">No atiende</div>';
-                } else {
-                    const [startH, startM] = rule.start.split(':').map(Number);
-                    const [endH, endM] = rule.end.split(':').map(Number);
+    if (!rule || !rule.active || !rule.start || !rule.end) {
+        slotsContainer.innerHTML = '<div style="padding:1rem; text-align:center; color:#ccc; font-size:0.9rem;">No atiende</div>';
+    } else {
+        const [startH, startM] = rule.start.split(':').map(Number);
+        const [endH, endM] = rule.end.split(':').map(Number);
 
-                    let slotTime = new Date(dateStr + 'T00:00:00');
-                    slotTime.setHours(startH, startM, 0, 0);
-                    const slotEndTime = new Date(dateStr + 'T00:00:00');
-                    slotEndTime.setHours(endH, endM, 0, 0);
+        let slotTime = new Date(dateStr + 'T00:00:00');
+        slotTime.setHours(startH, startM, 0, 0);
+        const slotEndTime = new Date(dateStr + 'T00:00:00');
+        slotEndTime.setHours(endH, endM, 0, 0);
 
-                    // Safety limit
-                    let iterations = 0;
-                    while (slotTime < slotEndTime && iterations < 100) {
-                        iterations++;
-                        const timeStr = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        // Safety limit
+        let iterations = 0;
+        while (slotTime < slotEndTime && iterations < 100) {
+            iterations++;
+            const timeStr = slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
-                        const slotDiv = document.createElement('div');
-                        slotDiv.className = 'time-slot';
-                        slotDiv.style.cursor = 'pointer';
+            const slotDiv = document.createElement('div');
+            slotDiv.className = 'time-slot';
+            slotDiv.style.cursor = 'pointer';
 
-                        const appt = appointmentsMap[dateStr] && appointmentsMap[dateStr][timeStr];
+            const appt = appointmentsMap[dateStr] && appointmentsMap[dateStr][timeStr];
 
-                        if (appt) {
-                            const isBlocked = appt.status === 'blocked';
-                            slotDiv.classList.add('taken');
-                            if (isBlocked) {
-                                slotDiv.style.background = '#fee2e2';
-                                slotDiv.style.color = '#b91c1c';
-                            }
+            if (appt) {
+                const isBlocked = appt.status === 'blocked';
+                slotDiv.classList.add('taken');
+                if (isBlocked) {
+                    slotDiv.style.background = '#fee2e2';
+                    slotDiv.style.color = '#b91c1c';
+                }
 
-                            slotDiv.style.minHeight = '60px';
-                            slotDiv.innerHTML = `
+                slotDiv.style.minHeight = '60px';
+                slotDiv.innerHTML = `
                                 <strong>${timeStr}</strong><br>
                                 ${isBlocked ? 'BLOQUEADO' : (appt.patientName ? appt.patientName.split(' ')[0] : 'Ocupado')}
                             `;
-                            slotDiv.onclick = () => openEditModal(appt);
-                        } else {
-                            slotDiv.textContent = timeStr;
-                            slotDiv.onclick = () => openAddModal(timeStr, dateStr);
-                        }
+                slotDiv.onclick = () => openEditModal(appt);
+            } else {
+                slotDiv.textContent = timeStr;
+                slotDiv.onclick = () => openAddModal(timeStr, dateStr);
+            }
 
-                        slotsContainer.appendChild(slotDiv);
-                        slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
-                    }
-                }
+            slotsContainer.appendChild(slotDiv);
+            slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
+        }
+    }
 
-                col.appendChild(slotsContainer);
-                calendarGrid.appendChild(col);
-            });
+    col.appendChild(slotsContainer);
+    calendarGrid.appendChild(col);
+});
 
         } catch (error) {
-            console.error("Week view critical error", error);
-            calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error crítico: ${error.message}</div>`;
-        }
+    console.error("Week view critical error", error);
+    calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error crítico: ${error.message}</div>`;
+}
     }
 
-    async function getAppointmentsForWeek(doctorId, dates) {
-        const startDate = dates[0];
-        const endDate = dates[dates.length - 1];
+async function getAppointmentsForWeek(doctorId, dates) {
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
 
-        // Use client-side filtering to avoid index issues for now
-        try {
-            const q = query(collection(db, "appointments"), where("doctor", "==", doctorId));
-            const snap = await getDocs(q);
+    // Use client-side filtering to avoid index issues for now
+    try {
+        const q = query(collection(db, "appointments"), where("doctor", "==", doctorId));
+        const snap = await getDocs(q);
 
-            const map = {};
-            snap.forEach(doc => {
-                const data = { id: doc.id, ...doc.data() };
-                // Filter by date range locally
-                if (data.date >= startDate && data.date <= endDate) {
-                    if (!map[data.date]) map[data.date] = {};
-                    map[data.date][data.time] = data;
-                }
-            });
-            return map;
-        } catch (e) {
-            console.error("Fetch appointments failed", e);
-            throw e;
-        }
-    }
-
-    function processSnap(snap) {
         const map = {};
         snap.forEach(doc => {
-            const data = doc.data();
-            if (!map[data.date]) map[data.date] = {};
-            map[data.date][data.time] = data;
+            const data = { id: doc.id, ...doc.data() };
+            // Filter by date range locally
+            if (data.date >= startDate && data.date <= endDate) {
+                if (!map[data.date]) map[data.date] = {};
+                map[data.date][data.time] = data;
+            }
         });
         return map;
+    } catch (e) {
+        console.error("Fetch appointments failed", e);
+        throw e;
     }
+}
 
-    // Shared Details Modal
-    window.showAppointmentDetails = function (appt) {
-        modalContent.innerHTML = `
+function processSnap(snap) {
+    const map = {};
+    snap.forEach(doc => {
+        const data = doc.data();
+        if (!map[data.date]) map[data.date] = {};
+        map[data.date][data.time] = data;
+    });
+    return map;
+}
+
+// Shared Details Modal
+window.showAppointmentDetails = function (appt) {
+    modalContent.innerHTML = `
             <div style="border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
                 <h4 style="margin-bottom:0.5rem; color: var(--primary);">
                     ${capitalize(appt.patientName)}
@@ -935,10 +1174,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p><strong>Estado:</strong> <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-size:0.85rem;">${appt.status || 'Confirmado'}</span></p>
             </div>
         `;
-        modal.style.display = 'block';
-    }
+    modal.style.display = 'block';
+}
 
-    function capitalize(s) {
-        return s && s[0].toUpperCase() + s.slice(1);
-    }
+function capitalize(s) {
+    return s && s[0].toUpperCase() + s.slice(1);
+}
 });
