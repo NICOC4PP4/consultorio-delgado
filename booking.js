@@ -392,6 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const newSubmitBtn = localSubmitBtn.cloneNode(true);
             localSubmitBtn.parentNode.replaceChild(newSubmitBtn, localSubmitBtn);
 
+            // CRITICAL FIX: Update global reference so selectWeekSlot enables the REAL button
+            submitBtn = newSubmitBtn;
+
             // Validate references after replace
             console.log("New submit button reference:", newSubmitBtn);
 
