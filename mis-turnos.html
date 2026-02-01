@@ -88,6 +88,67 @@
             padding: 3rem;
             color: #888;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
     </style>
 </head>
 
@@ -139,151 +200,202 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Logic -->
-        <script type="module">
-            import { auth, db } from './firebase-config.js';
-            import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-            import { collection, query, where, getDocs, orderBy, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <!-- Custom Confirmation Modal -->
+    <div id="cancel-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;">
+                <i class="far fa-times-circle"></i>
+            </div>
+            <h3>¿Cancelar Turno?</h3>
+            <p id="modal-text" style="color: #666; margin-bottom: 0;">¿Estás seguro que deseas cancelar este turno? Esta
+                acción no se puede deshacer.</p>
 
-            const greeting = document.getElementById('patient-greeting');
-            const emailDisplay = document.getElementById('patient-email-display');
-            const upcomingList = document.getElementById('upcoming-list');
-            const historyList = document.getElementById('history-list');
-            const logoutBtn = document.getElementById('logout-btn');
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn btn-secondary" style="padding: 0.6rem 1.5rem;">Volver</button>
+                <button id="modal-confirm-btn" class="btn btn-danger" style="padding: 0.6rem 1.5rem;">Sí,
+                    Cancelar</button>
+            </div>
+        </div>
+    </div>
 
-            onAuthStateChanged(auth, async (user) => {
-                if (!user) {
-                    window.location.href = 'login-paciente.html';
-                    return;
-                }
+    <!-- Logic -->
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, query, where, getDocs, orderBy, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-                // Display Info
-                const name = user.displayName ? user.displayName.split(' ')[0] : 'Paciente';
-                const headerGreeting = document.getElementById('header-greeting');
-                if (headerGreeting) headerGreeting.innerText = `Hola ${name},`;
+        const greeting = document.getElementById('patient-greeting');
+        const emailDisplay = document.getElementById('patient-email-display');
+        const upcomingList = document.getElementById('upcoming-list');
+        const historyList = document.getElementById('history-list');
+        const logoutBtn = document.getElementById('logout-btn');
 
-                if (emailDisplay) emailDisplay.textContent = user.email;
-
-                // Fetch Appointments
-                loadAppointments(user.email);
-            });
-
-            logoutBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await signOut(auth);
-                window.location.href = 'index.html';
-            });
-
-            async function loadAppointments(email) {
-                try {
-                    // Determine today
-                    const todayStr = new Date().toISOString().split('T')[0];
-
-                    // Query by email
-                    // Note: Requires index on email + date if we sort. 
-                    // For now, simple query + in-memory sort is safer for small data if index missing.
-                    const q = query(
-                        collection(db, "appointments"),
-                        where("patientEmail", "==", email)
-                    );
-
-                    const snap = await getDocs(q);
-                    let appts = [];
-                    snap.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
-
-                    // Sort
-                    appts.sort((a, b) => {
-                        if (a.date === b.date) return a.time.localeCompare(b.time);
-                        return a.date.localeCompare(b.date);
-                    });
-
-                    // Logic:
-                    // Upcoming: Date >= Today AND status != 'cancelled'
-                    // History: Date < Today OR status == 'cancelled'
-
-                    const upcoming = appts.filter(a => a.date >= todayStr && a.status !== 'cancelled');
-
-                    // History includes past appointments OR any cancelled appointment (even if future)
-                    const past = appts.filter(a => a.date < todayStr || a.status === 'cancelled').sort((a, b) => {
-                        // Sort history by date descending (newest first)
-                        if (a.date === b.date) return b.time.localeCompare(a.time);
-                        return b.date.localeCompare(a.date);
-                    });
-
-                    renderList(upcomingList, upcoming, true);
-                    renderList(historyList, past, false);
-
-                    // Inject "New Turno" button dynamically
-                    const btnContainer = document.getElementById('new-appointment-btn-container');
-                    if (btnContainer) {
-                        btnContainer.innerHTML = `<a href="turnos.html" class="btn btn-primary" style="width:100%; display:block; text-align:center;">Solicitar Nuevo Turno</a>`;
-                    }
-
-                } catch (e) {
-                    console.error(e);
-                    upcomingList.innerHTML = `<div style="color:red">Error al cargar turnos.</div>`;
-                }
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'login-paciente.html';
+                return;
             }
 
-            // Expose cancel function to global scope
-            window.cancelAppointment = async (id, date, time) => {
-                const confirmed = confirm(`¿Estás seguro que deseas cancelar el turno del ${date} a las ${time}hs?`);
-                if (!confirmed) return;
+            // Display Info
+            const name = user.displayName ? user.displayName.split(' ')[0] : 'Paciente';
+            const headerGreeting = document.getElementById('header-greeting');
+            if (headerGreeting) headerGreeting.innerText = `Hola ${name},`;
 
-                try {
-                    const apptRef = doc(db, "appointments", id);
-                    await updateDoc(apptRef, {
-                        status: 'cancelled',
-                        cancellationDate: new Date().toISOString()
-                    });
+            if (emailDisplay) emailDisplay.textContent = user.email;
 
-                    alert("Turno cancelado correctamente.");
-                    // Reload
-                    const user = auth.currentUser;
-                    if (user) loadAppointments(user.email);
+            // Fetch Appointments
+            loadAppointments(user.email);
+        });
 
-                } catch (error) {
-                    console.error("Error cancelling:", error);
-                    alert("Hubo un error al cancelar el turno.");
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await signOut(auth);
+            window.location.href = 'index.html';
+        });
+
+        async function loadAppointments(email) {
+            try {
+                // Determine today
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                // Query by email
+                // Note: Requires index on email + date if we sort. 
+                // For now, simple query + in-memory sort is safer for small data if index missing.
+                const q = query(
+                    collection(db, "appointments"),
+                    where("patientEmail", "==", email)
+                );
+
+                const snap = await getDocs(q);
+                let appts = [];
+                snap.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
+
+                // Sort
+                appts.sort((a, b) => {
+                    if (a.date === b.date) return a.time.localeCompare(b.time);
+                    return a.date.localeCompare(b.date);
+                });
+
+                // Logic:
+                // Upcoming: Date >= Today AND status != 'cancelled'
+                // History: Date < Today OR status == 'cancelled'
+
+                const upcoming = appts.filter(a => a.date >= todayStr && a.status !== 'cancelled');
+
+                // History includes past appointments OR any cancelled appointment (even if future)
+                const past = appts.filter(a => a.date < todayStr || a.status === 'cancelled').sort((a, b) => {
+                    // Sort history by date descending (newest first)
+                    if (a.date === b.date) return b.time.localeCompare(a.time);
+                    return b.date.localeCompare(a.date);
+                });
+
+                renderList(upcomingList, upcoming, true);
+                renderList(historyList, past, false);
+
+                // Inject "New Turno" button dynamically
+                const btnContainer = document.getElementById('new-appointment-btn-container');
+                if (btnContainer) {
+                    btnContainer.innerHTML = `<a href="turnos.html" class="btn btn-primary" style="width:100%; display:block; text-align:center;">Solicitar Nuevo Turno</a>`;
                 }
-            };
 
-            function renderList(container, items, isUpcoming) {
-                if (items.length === 0) {
-                    container.innerHTML = `<div class="empty-state">No tienes turnos ${isUpcoming ? 'próximos' : 'pasados'}.</div>`;
-                    return;
+            } catch (e) {
+                console.error(e);
+                upcomingList.innerHTML = `<div style="color:red">Error al cargar turnos.</div>`;
+            }
+        }
+
+        // Expose cancel function to global scope
+        // Expose cancel function to global scope
+        let pendingCancelId = null;
+
+        // Modal Elements
+        const modal = document.getElementById('cancel-modal');
+        const modalText = document.getElementById('modal-text');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        window.cancelAppointment = (id, date, time) => {
+            pendingCancelId = id;
+            modalText.innerText = `¿Estás seguro que deseas cancelar el turno del ${date} a las ${time}hs?`;
+            modal.classList.add('active');
+        };
+
+        // Close Modal
+        modalCancelBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            pendingCancelId = null;
+        });
+
+        // Confirm Cancellation
+        modalConfirmBtn.addEventListener('click', async () => {
+            if (!pendingCancelId) return;
+
+            // UI Loading state
+            const originalText = modalConfirmBtn.innerText;
+            modalConfirmBtn.disabled = true;
+            modalConfirmBtn.innerText = "Cancelando...";
+
+            try {
+                const apptRef = doc(db, "appointments", pendingCancelId);
+                await updateDoc(apptRef, {
+                    status: 'cancelled',
+                    cancellationDate: new Date().toISOString()
+                });
+
+                // Close and Refresh
+                modal.classList.remove('active');
+                // alert("Turno cancelado correctamente."); // Optional: remove this too for cleaner flow? User didn't specify. Keeping it for feedback but maybe nicer toast later.
+
+                const user = auth.currentUser;
+                if (user) loadAppointments(user.email);
+
+            } catch (error) {
+                console.error("Error cancelling:", error);
+                alert("Hubo un error al cancelar el turno.");
+            } finally {
+                modalConfirmBtn.disabled = false;
+                modalConfirmBtn.innerText = originalText;
+                pendingCancelId = null;
+            }
+        });
+
+        function renderList(container, items, isUpcoming) {
+            if (items.length === 0) {
+                container.innerHTML = `<div class="empty-state">No tienes turnos ${isUpcoming ? 'próximos' : 'pasados'}.</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map(appt => {
+                const dateObj = new Date(appt.date + 'T00:00:00');
+                const dateStr = dateObj.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+                const doctorName = appt.doctor === 'secondi' ? 'Dra. Ma. Verónica Secondi' : 'Dr. Guillermo Capparelli';
+                const isCancelled = appt.status === 'cancelled';
+
+                let statusBadge = '';
+                if (isCancelled) {
+                    statusBadge = `<span class="status-badge status-cancelled">Cancelado</span>`;
+                } else if (appt.date < new Date().toISOString().split('T')[0]) {
+                    statusBadge = `<span class="status-badge" style="background:#eee; color:#666;">Finalizado</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge status-confirmed">Confirmado</span>`;
                 }
 
-                container.innerHTML = items.map(appt => {
-                    const dateObj = new Date(appt.date + 'T00:00:00');
-                    const dateStr = dateObj.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-                    const doctorName = appt.doctor === 'secondi' ? 'Dra. Ma. Verónica Secondi' : 'Dr. Guillermo Capparelli';
-                    const isCancelled = appt.status === 'cancelled';
-
-                    let statusBadge = '';
-                    if (isCancelled) {
-                        statusBadge = `<span class="status-badge status-cancelled">Cancelado</span>`;
-                    } else if (appt.date < new Date().toISOString().split('T')[0]) {
-                        statusBadge = `<span class="status-badge" style="background:#eee; color:#666;">Finalizado</span>`;
-                    } else {
-                        statusBadge = `<span class="status-badge status-confirmed">Confirmado</span>`;
-                    }
-
-                    // Cancel Button only for Upcoming and NOT cancelled
-                    let actions = '';
-                    if (isUpcoming && !isCancelled) {
-                        actions = `
+                // Cancel Button only for Upcoming and NOT cancelled
+                let actions = '';
+                if (isUpcoming && !isCancelled) {
+                    actions = `
                             <button onclick="cancelAppointment('${appt.id}', '${appt.date}', '${appt.time}')" 
                                     class="btn-outline" 
                                     style="padding: 0.3rem 0.8rem; font-size: 0.8rem; border-color: #ef4444; color: #ef4444; margin-left: 1rem; cursor: pointer;">
                                 <i class="fas fa-times"></i> Cancelar
                             </button>
                         `;
-                    }
+                }
 
-                    return `
+                return `
                     <div class="appt-card">
                         <div class="appt-info">
                             <h4>${doctorName}</h4>
@@ -298,13 +410,13 @@
                         </div>
                     </div>
                 `;
-                }).join('');
-            }
+            }).join('');
+        }
 
-            function capitalize(str) {
-                return str.charAt(0).toUpperCase() + str.slice(1);
-            }
-        </script>
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
 </body>
 
 </html>
