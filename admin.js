@@ -1231,6 +1231,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+// Email is readonly to avoid auth mismatch issues for now
+
+try {
+    await updateDoc(doc(db, "patients", id), data);
+    alert("Datos actualizados correctamente.");
+    // Optional: Refresh search results or modal
+} catch (e) {
+    console.error(e);
+    alert("Error al actualizar.");
+}
+    });
+
+});
 
 const header = document.createElement('div');
 header.className = 'day-header';
