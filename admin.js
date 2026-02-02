@@ -1293,11 +1293,13 @@ col.appendChild(slotsContainer);
 calendarGrid.appendChild(col);
     });
 
-} catch (error) {
+    } catch (error) {
     console.error("Week view critical error", error);
-    calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error crítico: ${error.message}</div>`;
-}
+    if (calendarGrid) {
+        calendarGrid.innerHTML = `<div style="padding: 2rem; color:red; grid-column:1/-1;">Error crítico: ${error.message}</div>`;
     }
+}
+}
 
 async function getAppointmentsForWeek(doctorId, dates) {
     const startDate = dates[0];
